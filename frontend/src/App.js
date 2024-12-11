@@ -1,11 +1,17 @@
 import React from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import HomePage from './pages/HomePage';
+import CarListingsPage from './pages/CarListingsPage';
 
-function App() {
+const App = () => {
     return (
-        <div>
-            <h1>Welcome to Rent-a-Ride</h1>
-        </div>
+        <Router>
+            <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/cars" element={<CarListingsPage />} />
+            </Routes>
+        </Router>
     );
-}
+};
 
 export default App;
