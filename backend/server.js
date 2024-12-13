@@ -34,6 +34,7 @@ app.use(express.static(frontendPath));
 app.get('*', (req, res) => {
     res.sendFile(path.join(frontendPath, 'index.html'), (err) => {
         if (err) {
+            console.error('Error serving frontend:', err.message);
             res.status(500).send('An error occurred while serving the frontend.');
         }
     });
@@ -44,10 +45,7 @@ app.use(errorHandler);
 
 // Connect to MongoDB
 mongoose
-    .connect(process.env.MONGO_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-    })
+    .connect(process.env.MONGO_URI)
     .then(() => {
         console.log('MongoDB connected successfully');
         app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
