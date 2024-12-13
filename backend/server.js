@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Root route
+// Health check route
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK', message: 'Backend is running!' });
 });
@@ -27,12 +27,16 @@ app.use('/api/auth', authRoutes);
 app.use('/api/cars', carRoutes);
 app.use('/api/bookings', bookingRoutes);
 
-// Serve frontend
-const frontendPath = path.join(__dirname, '../frontend/build');
+// Serve React frontend
+const frontendPath = path.join(__dirname, './frontend');
 app.use(express.static(frontendPath));
 
 app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendPath, 'index.html'));
+    res.sendFile(path.join(frontendPath, 'index.html'), (err) => {
+        if (err) {
+            res.status(500).send('An error occurred while serving the frontend.');
+        }
+    });
 });
 
 // Error handling middleware
@@ -40,7 +44,10 @@ app.use(errorHandler);
 
 // Connect to MongoDB
 mongoose
-    .connect(process.env.MONGO_URI)
+    .connect(process.env.MONGO_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    })
     .then(() => {
         console.log('MongoDB connected successfully');
         app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
