@@ -11,7 +11,7 @@ const CarListingsPage = () => {
         const fetchCars = async () => {
             try {
                 console.log('Fetching cars...'); // Debug
-                const response = await axios.get('http://localhost:5000/api/cars');
+                const response = await axios.get(`${process.env.REACT_APP_API_URL}/cars`);
                 console.log('API Response:', response.data); // Debug
                 setCars(response.data);
             } catch (err) {
@@ -21,9 +21,9 @@ const CarListingsPage = () => {
                 setLoading(false);
             }
         };
-    
+
         fetchCars();
-    }, []);    
+    }, []);
 
     if (loading) return <p>Loading...</p>;
     if (error) return <p>{error}</p>;
