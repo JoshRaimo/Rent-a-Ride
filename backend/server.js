@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 // Import routes
@@ -17,11 +18,6 @@ app.use(cors());
 app.use(express.json());
 
 // Root route
-app.get('/', (req, res) => {
-    res.send('Rent-a-Ride Backend');
-});
-
-// Health check route
 app.get('/health', (req, res) => {
     res.status(200).json({ status: 'OK', message: 'Backend is running!' });
 });
@@ -30,6 +26,16 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/cars', carRoutes);
 app.use('/api/bookings', bookingRoutes);
+
+// Serve frontend
+const frontendPath = path.join(__dirname, '../frontend/build');
+app.use(express.static(frontendPath));
+
+app.get('*', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
+// Error handling middleware
 app.use(errorHandler);
 
 // Connect to MongoDB
@@ -43,11 +49,6 @@ mongoose
         console.error('MongoDB connection error:', err.message);
         process.exit(1); // Exit process on connection failure
     });
-
-// Handle unhandled routes
-app.use((req, res) => {
-    res.status(404).json({ error: 'Route not found' });
-});
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
