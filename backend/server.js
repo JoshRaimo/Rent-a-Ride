@@ -32,7 +32,7 @@ app.use('/api/cars', carRoutes);
 app.use('/api/bookings', bookingRoutes);
 
 // Serve React frontend
-const frontendPath = path.join(__dirname, './frontend');
+const frontendPath = path.join(__dirname, '../frontend/build'); // Updated path to 'frontend/build'
 app.use(express.static(frontendPath));
 
 app.get('*', (req, res) => {
