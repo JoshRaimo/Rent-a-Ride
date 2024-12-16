@@ -1,3 +1,4 @@
+const { validationResult } = require('express-validator');
 const Car = require('../models/Car');
 
 // Get all cars
@@ -6,29 +7,26 @@ const getAllCars = async (req, res) => {
         const cars = await Car.find();
         res.status(200).json(cars);
     } catch (err) {
-        console.error('Error fetching cars:', err.message); // Log error for debugging
+        console.error('Error fetching cars:', err.message);
         res.status(500).json({ error: 'Failed to fetch cars', details: err.message });
     }
 };
 
 // Add a new car
-const addCar = async (req, res) => {
+const addCar = async (carData) => {
     try {
-        const { make, model, year, price_per_day, availabilityStatus, image } = req.body;
+        // Extract fields from carData
+        const { make, model, year, pricePerDay, availabilityStatus, image } = carData;
 
-        // Validate request data
-        if (!make || !model || !year || price_per_day === undefined || availabilityStatus === undefined) {
-            return res.status(400).json({ error: 'Missing required car details' });
+        // Year validation
+        const currentYear = new Date().getFullYear();
+        if (year < 1886 || year > currentYear + 1) {
+            throw new Error(`Year must be between 1886 and ${currentYear + 1}.`);
         }
 
-        // Ensure year is valid
-        if (isNaN(year) || year < 1886 || year > new Date().getFullYear() + 1) { // Car production started in 1886
-            return res.status(400).json({ error: 'Invalid car year provided' });
-        }
-
-        // Ensure price_per_day is a positive number
-        if (isNaN(price_per_day) || price_per_day <= 0) {
-            return res.status(400).json({ error: 'Price per day must be a positive number' });
+        // Price validation
+        if (pricePerDay <= 0) {
+            throw new Error('Price per day must be greater than 0.');
         }
 
         // Create a new car instance
@@ -36,18 +34,17 @@ const addCar = async (req, res) => {
             make,
             model,
             year,
-            price_per_day,
+            pricePerDay,
             availabilityStatus,
-            image: image || '', // Optional image field
+            image: image || '',
         });
 
-        // Save car to database
+        // Save car to the database
         await car.save();
-
-        res.status(201).json({ message: 'Car added successfully', car });
+        return car;
     } catch (err) {
-        console.error('Error adding car:', err.message); // Log error for debugging
-        res.status(500).json({ error: 'Failed to add car', details: err.message });
+        console.error('Error adding car:', err.message);
+        throw new Error(err.message); // Return the error message for the route to handle
     }
 };
 

@@ -1,7 +1,8 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { getAllCars, addCar } = require('../controllers/carController');
-const { authenticate } = require('../middleware/authMiddleware'); // Updated for token authentication
+const { authenticate } = require('../middleware/authMiddleware');
+
 const router = express.Router();
 
 // Get all cars
@@ -14,9 +15,22 @@ router.post(
         authenticate, // Ensure the user is authenticated
         body('make').notEmpty().withMessage('Make is required'),
         body('model').notEmpty().withMessage('Model is required'),
-        body('year').isNumeric().withMessage('Year must be a number'),
-        body('price_per_day').isFloat({ gt: 0 }).withMessage('Price per day must be greater than 0'),
-        body('availabilityStatus').optional().isBoolean().withMessage('Availability status must be true or false'),
+        body('year')
+            .isNumeric()
+            .withMessage('Year must be a number')
+            .custom((value) => {
+                const currentYear = new Date().getFullYear();
+                if (value < 1886 || value > currentYear + 1) {
+                    throw new Error(`Year must be between 1886 and ${currentYear + 1}.`);
+                }
+                return true;
+            }),
+        body('pricePerDay').isFloat({ gt: 0 }).withMessage('Price per day must be greater than 0'),
+        body('availabilityStatus')
+            .optional()
+            .isBoolean()
+            .withMessage('Availability status must be true or false'),
+        body('image').optional().isString().withMessage('Image URL must be a string'),
     ],
     async (req, res) => {
         try {
@@ -32,11 +46,12 @@ router.post(
             }
 
             // Call the controller function to add a new car
-            const car = await addCar(req.body);
-            res.status(201).json({ message: 'Car added successfully', car });
+            const carData = req.body;
+            const car = await addCar(carData);
+            return res.status(201).json({ message: 'Car added successfully', car });
         } catch (error) {
             console.error('Error adding car:', error.message);
-            res.status(500).json({ message: 'Server error', error: error.message });
+            return res.status(500).json({ message: 'Failed to add car', error: error.message });
         }
     }
 );

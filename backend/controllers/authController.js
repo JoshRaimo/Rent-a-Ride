@@ -7,7 +7,6 @@ const registerUser = async (req, res) => {
     try {
         const { username, email, password, role } = req.body;
 
-        // Log the incoming request body for debugging
         console.log('Register Request Body:', req.body);
 
         // Validate input fields
@@ -24,13 +23,14 @@ const registerUser = async (req, res) => {
         // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create a new user with the role field (default to 'user' if not provided)
+        // Create a new user
         const newUser = new User({
             username,
             email,
             password: hashedPassword,
-            role: role || 'user', // Default role is 'user'
+            role: role || 'user', // Default role
         });
+
         await newUser.save();
 
         res.status(201).json({
@@ -51,7 +51,7 @@ const registerUser = async (req, res) => {
 // User login
 const loginUser = async (req, res) => {
     try {
-        console.log('Login Request Body:', req.body); // Debug log
+        console.log('Login Request Body:', req.body);
 
         const { email, password } = req.body;
 
@@ -65,33 +65,35 @@ const loginUser = async (req, res) => {
             return res.status(400).json({ error: 'Invalid email or password' });
         }
 
-        // Validate user password
+        // Validate password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ error: 'Invalid email or password' });
         }
 
-        // Generate JWT
+        // Generate JWT with username included
         const token = jwt.sign(
-            { id: user._id, email: user.email, role: user.role }, // Include role in token
+            { id: user._id, username: user.username, email: user.email, role: user.role }, // Include username here
             process.env.JWT_SECRET,
             { expiresIn: '1h' }
         );
 
-        // Respond with token and user details
+        console.log('Login Successful:', { username: user.username, email: user.email });
+
+        // Send response
         return res.status(200).json({
             message: 'Login successful',
             token,
             user: {
                 _id: user._id,
-                username: user.username,
+                username: user.username, // Include username
                 email: user.email,
-                role: user.role, // Include role in the response
+                role: user.role,
             },
         });
     } catch (err) {
-        console.error('Login Error:', err.message); // Debug log
-        return res.status(500).json({ message: 'Server error during login' });
+        console.error('Login Error:', err.message);
+        return res.status(500).json({ message: 'Server error during login', error: err.message });
     }
 };
 
