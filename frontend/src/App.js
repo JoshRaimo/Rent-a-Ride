@@ -34,26 +34,46 @@ const MainApp = () => {
     const [token, setTokenState] = useState(getToken());
     const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || null);
 
+    /**
+     * Validates the token and sets user state.
+     */
     const validateToken = () => {
+        const storedToken = getToken();
+
+        if (!storedToken) {
+            // No token present, avoid triggering notifications
+            return;
+        }
+
         if (isTokenExpired()) {
-            toast.warn('Session expired. Please log in again.');
-            handleLogout();
+            console.warn('Token has expired. Logging out silently...');
+            handleLogout(false); // Silent logout
         } else {
             const decoded = decodeToken();
             if (decoded) {
-                setTokenState(getToken());
+                setTokenState(storedToken);
                 setUser(decoded);
             }
         }
     };
 
-    const handleLogout = () => {
+    /**
+     * Handles user logout, optionally showing a notification.
+     * @param {boolean} showNotification - Whether to show a logout notification.
+     */
+    const handleLogout = (showNotification = true) => {
+        console.log('Logging out...');
         logout(navigate);
         setTokenState(null);
         setUser(null);
-        toast.success('Logged out successfully!');
+        if (showNotification) {
+            toast.success('Logged out successfully!');
+        }
     };
 
+    /**
+     * Handles successful login and updates the state.
+     */
     const handleLoginSuccess = (newToken) => {
         setToken(newToken);
         const decoded = decodeToken();
@@ -62,10 +82,15 @@ const MainApp = () => {
         navigate('/');
     };
 
+    /**
+     * Updates the user state after profile updates.
+     */
     const handleUserUpdate = (updatedUser) => {
         setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser)); // Sync user data in localStorage
     };
 
+    // Validate token on component mount
     useEffect(() => {
         validateToken();
     }, []);
@@ -116,7 +141,7 @@ const MainApp = () => {
                                     </li>
                                     <li>
                                         <button
-                                            onClick={handleLogout}
+                                            onClick={() => handleLogout()}
                                             className="hover:underline text-red-500"
                                         >
                                             Logout
