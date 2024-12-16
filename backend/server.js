@@ -1,3 +1,4 @@
+// Import required modules
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -13,13 +14,20 @@ const errorHandler = require('./middleware/errorHandler');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(
-    cors({
-        origin: process.env.CLIENT_URL || '*',
-    })
-);
+// Middleware to handle CORS
+app.use(cors({
+    origin: process.env.CLIENT_URL || '*', // Allows CORS for the specified client URL or all origins
+}));
+
+// Middleware to parse incoming JSON requests
 app.use(express.json());
+
+// Log all incoming requests for debugging
+app.use((req, res, next) => {
+    console.log(`[${req.method}] ${req.url}`);
+    console.log('Request Body:', req.body); // Log body for debugging
+    next();
+});
 
 // Health check route
 app.get('/health', (req, res) => {
@@ -32,7 +40,7 @@ app.use('/api/cars', carRoutes);
 app.use('/api/bookings', bookingRoutes);
 
 // Serve React frontend
-const frontendPath = path.join(__dirname, '../frontend/build'); // Updated path to 'frontend/build'
+const frontendPath = path.join(__dirname, '../frontend/build');
 app.use(express.static(frontendPath));
 
 app.get('*', (req, res) => {
@@ -49,7 +57,10 @@ app.use(errorHandler);
 
 // Connect to MongoDB
 mongoose
-    .connect(process.env.MONGO_URI)
+    .connect(process.env.MONGO_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    })
     .then(() => {
         console.log('MongoDB connected successfully');
         app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

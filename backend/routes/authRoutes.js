@@ -9,7 +9,12 @@ router.get('/', (req, res) => {
 
 // Routes for user authentication
 router.post('/register', registerUser);
-router.post('/login', loginUser);
+router.post('/login', loginUser); // Use the loginUser function directly
+
+router.post('/test', (req, res) => {
+    console.log('Test Route Body:', req.body); // Log the request body
+    res.status(200).json({ message: 'Test successful', body: req.body });
+});
 
 // Error handler for unsupported routes in /api/auth
 router.use((req, res) => {
