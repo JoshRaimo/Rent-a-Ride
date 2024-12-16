@@ -13,9 +13,10 @@ const ProfilePage = ({ onUpdateUser }) => {
         const fetchUserProfile = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get('http://localhost:5000/api/users/profile', {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+                const response = await axios.get(
+                    `${process.env.REACT_APP_API_URL}/users/profile`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
                 setUser(response.data);
                 setUsername(response.data.username);
                 setEmail(response.data.email);
@@ -36,7 +37,7 @@ const ProfilePage = ({ onUpdateUser }) => {
             setUpdating(true);
             const token = localStorage.getItem('token');
             const response = await axios.put(
-                'http://localhost:5000/api/users/profile',
+                `${process.env.REACT_APP_API_URL}/users/profile`,
                 { username, email },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
