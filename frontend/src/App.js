@@ -8,6 +8,7 @@ import Register from './pages/Register';
 import HomePage from './pages/HomePage';
 import CarListingsPage from './pages/CarListingsPage';
 import ProfilePage from './pages/ProfilePage';
+import ImageUpload from './components/ImageUpload';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import {
@@ -28,20 +29,15 @@ const App = () => {
     );
 };
 
-// Separate MainApp component
 const MainApp = () => {
     const navigate = useNavigate();
     const [token, setTokenState] = useState(getToken());
     const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || null);
 
-    /**
-     * Validates the token and sets user state.
-     */
     const validateToken = () => {
         const storedToken = getToken();
 
         if (!storedToken) {
-            // No token present, avoid triggering notifications
             return;
         }
 
@@ -57,10 +53,6 @@ const MainApp = () => {
         }
     };
 
-    /**
-     * Handles user logout, optionally showing a notification.
-     * @param {boolean} showNotification - Whether to show a logout notification.
-     */
     const handleLogout = (showNotification = true) => {
         console.log('Logging out...');
         logout(navigate);
@@ -71,9 +63,6 @@ const MainApp = () => {
         }
     };
 
-    /**
-     * Handles successful login and updates the state.
-     */
     const handleLoginSuccess = (newToken) => {
         setToken(newToken);
         const decoded = decodeToken();
@@ -82,15 +71,11 @@ const MainApp = () => {
         navigate('/');
     };
 
-    /**
-     * Updates the user state after profile updates.
-     */
     const handleUserUpdate = (updatedUser) => {
         setUser(updatedUser);
         localStorage.setItem('user', JSON.stringify(updatedUser)); // Sync user data in localStorage
     };
 
-    // Validate token on component mount
     useEffect(() => {
         validateToken();
     }, []);
@@ -149,6 +134,11 @@ const MainApp = () => {
                                     </li>
                                 </>
                             )}
+                            <li>
+                                <Link to="/upload" className="hover:underline">
+                                    Upload Test
+                                </Link>
+                            </li>
                         </ul>
                     </nav>
                 </div>
@@ -163,6 +153,7 @@ const MainApp = () => {
                     />
                     <Route path="/register" element={<Register />} />
                     <Route path="/cars" element={<CarListingsPage />} />
+                    <Route path="/upload" element={<ImageUpload />} />
 
                     <Route element={<ProtectedRoute />}>
                         <Route

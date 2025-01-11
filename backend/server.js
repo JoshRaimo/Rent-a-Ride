@@ -10,6 +10,7 @@ const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes'); // User Routes
 const carRoutes = require('./routes/carRoutes'); // Car Routes
 const bookingRoutes = require('./routes/bookingRoutes'); // Booking Routes
+const imageRoutes = require('./routes/imageRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -47,6 +48,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/cars', carRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/images', imageRoutes);
 
 // Serve React frontend
 const frontendPath = path.join(__dirname, '../frontend/build');
