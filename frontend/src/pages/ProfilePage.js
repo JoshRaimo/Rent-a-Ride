@@ -57,15 +57,15 @@ const ProfilePage = ({ onUpdateUser }) => {
     };
 
     return (
-        <div className="max-w-3xl mx-auto mt-10 p-6 bg-white rounded shadow">
-            <h1 className="text-3xl font-bold mb-6 text-center">Profile Page</h1>
+        <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded shadow">
+            <h1 className="text-2xl font-bold mb-6 text-center">Profile</h1>
 
             {loading ? (
-                <p className="text-center">Loading profile...</p>
+                <p className="text-center text-blue-500">Loading profile...</p>
             ) : (
                 <form onSubmit={handleUpdateProfile}>
                     <div className="mb-4">
-                        <label className="block mb-1 font-semibold">Username</label>
+                        <label className="block mb-1">Username</label>
                         <input
                             type="text"
                             value={username}
@@ -76,7 +76,7 @@ const ProfilePage = ({ onUpdateUser }) => {
                         />
                     </div>
                     <div className="mb-4">
-                        <label className="block mb-1 font-semibold">Email</label>
+                        <label className="block mb-1">Email</label>
                         <input
                             type="email"
                             value={email}
@@ -88,8 +88,10 @@ const ProfilePage = ({ onUpdateUser }) => {
                     </div>
                     <button
                         type="submit"
-                        className={`w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 ${
-                            updating ? 'opacity-50 cursor-not-allowed' : ''
+                        className={`w-full py-2 rounded text-white ${
+                            updating
+                                ? 'bg-blue-400 cursor-not-allowed'
+                                : 'bg-blue-500 hover:bg-blue-600'
                         }`}
                         disabled={updating}
                     >
