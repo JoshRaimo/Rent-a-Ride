@@ -8,8 +8,9 @@ require('dotenv').config();
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes'); // User Routes
-const carRoutes = require('./routes/carRoutes'); // Car Routes
+const carApiRoutes = require('./routes/carApiRoutes'); // Car Routes
 const bookingRoutes = require('./routes/bookingRoutes'); // Booking Routes
+const jwtRoutes = require('./routes/jwtRoutes');
 const imageRoutes = require('./routes/imageRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -46,8 +47,9 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/cars', carRoutes);
+app.use('/api/carapi', carApiRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/jwt', jwtRoutes);
 app.use('/api/images', imageRoutes);
 
 // Serve React frontend

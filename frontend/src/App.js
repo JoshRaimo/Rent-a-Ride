@@ -9,6 +9,7 @@ import HomePage from './pages/HomePage';
 import CarListingsPage from './pages/CarListingsPage';
 import ProfilePage from './pages/ProfilePage';
 import ImageUpload from './components/ImageUpload';
+import CarSearch from './components/CarSearch'; // Import the CarSearch component
 import ProtectedRoute from './components/ProtectedRoute';
 
 import {
@@ -99,6 +100,11 @@ const MainApp = () => {
                                     Cars
                                 </Link>
                             </li>
+                            <li>
+                                <Link to="/car-search" className="hover:underline">
+                                    Car Search
+                                </Link>
+                            </li>
                             {!token ? (
                                 <>
                                     <li>
@@ -154,6 +160,7 @@ const MainApp = () => {
                     <Route path="/register" element={<Register />} />
                     <Route path="/cars" element={<CarListingsPage />} />
                     <Route path="/upload" element={<ImageUpload />} />
+                    <Route path="/car-search" element={<CarSearch />} />
 
                     <Route element={<ProtectedRoute />}>
                         <Route
@@ -163,10 +170,6 @@ const MainApp = () => {
                     </Route>
                 </Routes>
             </main>
-
-            <footer className="bg-gray-800 text-white py-4 text-center">
-                <p className="text-sm">© 2024 Rent-a-Ride. All rights reserved.</p>
-            </footer>
         </div>
     );
 };

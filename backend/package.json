@@ -11,6 +11,7 @@
   "description": "Backend for Rent-a-Ride, a car rental platform",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.726.1",
+    "axios": "^1.7.9",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
