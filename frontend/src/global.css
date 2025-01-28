@@ -1,3 +1,82 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+    --primary-color: #1d4ed8; /* Primary blue color */
+    --secondary-color: #f3f4f6; /* Light gray for background */
+    --text-color: #374151; /* Text color */
+    --accent-color: #9ca3af; /* Accent color */
+    --footer-bg-color: #111827; /* Footer background */
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    color: var(--text-color);
+    background-color: var(--secondary-color);
+}
+
+.hero {
+    background-color: var(--secondary-color);
+    padding: 3rem 1rem;
+    text-align: center;
+}
+
+.hero-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    color: var(--accent-color);
+    margin-bottom: 2rem;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #2563eb;
+}
+
+.card {
+    background-color: white;
+    border: 1px solid var(--accent-color);
+    border-radius: 0.5rem;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    text-align: center;
+}
+
+.card-img {
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.card-body {
+    padding: 1rem;
+}
+
+.footer {
+    background-color: var(--footer-bg-color);
+    color: white;
+    padding: 2rem 1rem;
+    text-align: center;
+}
+
+.footer p {
+    margin: 0;
+}
+
+.grid-cols-footer {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}

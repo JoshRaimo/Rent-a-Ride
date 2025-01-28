@@ -8,7 +8,7 @@ import Register from './pages/Register';
 import HomePage from './pages/HomePage';
 import CarListingsPage from './pages/CarListingsPage';
 import ProfilePage from './pages/ProfilePage';
-import ImageUpload from './components/ImageUpload';
+import AdminDashboard from './pages/AdminDashboard'; // Import Admin Dashboard
 import CarSearch from './components/CarSearch'; // Import the CarSearch component
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -120,6 +120,13 @@ const MainApp = () => {
                                 </>
                             ) : (
                                 <>
+                                    {user?.role === 'admin' && (
+                                        <li>
+                                            <Link to="/admin-dashboard" className="hover:underline">
+                                                Admin Dashboard
+                                            </Link>
+                                        </li>
+                                    )}
                                     <li>
                                         <Link to="/profile" className="hover:underline">
                                             Profile
@@ -140,11 +147,6 @@ const MainApp = () => {
                                     </li>
                                 </>
                             )}
-                            <li>
-                                <Link to="/upload" className="hover:underline">
-                                    Upload Test
-                                </Link>
-                            </li>
                         </ul>
                     </nav>
                 </div>
@@ -159,8 +161,11 @@ const MainApp = () => {
                     />
                     <Route path="/register" element={<Register />} />
                     <Route path="/cars" element={<CarListingsPage />} />
-                    <Route path="/upload" element={<ImageUpload />} />
                     <Route path="/car-search" element={<CarSearch />} />
+
+                    {user?.role === 'admin' && (
+                        <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                    )}
 
                     <Route element={<ProtectedRoute />}>
                         <Route

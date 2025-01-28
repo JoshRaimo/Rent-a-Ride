@@ -8,7 +8,8 @@ require('dotenv').config();
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes'); // User Routes
-const carApiRoutes = require('./routes/carApiRoutes'); // Car Routes
+const carApiRoutes = require('./routes/carApiRoutes'); // Car API Routes
+const carRoutes = require('./routes/carRoutes'); // Car CRUD Routes
 const bookingRoutes = require('./routes/bookingRoutes'); // Booking Routes
 const jwtRoutes = require('./routes/jwtRoutes');
 const imageRoutes = require('./routes/imageRoutes');
@@ -47,7 +48,8 @@ app.get('/health', (req, res) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/carapi', carApiRoutes);
+app.use('/api/carapi', carApiRoutes); // Routes for Car API
+app.use('/api/cars', carRoutes); // Routes for Car CRUD Operations
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/jwt', jwtRoutes);
 app.use('/api/images', imageRoutes);

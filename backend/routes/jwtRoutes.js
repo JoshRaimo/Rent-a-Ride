@@ -2,10 +2,28 @@ const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 
-// Variable to store the generated JWT
-let jwtToken = null;
+// Variable to store the current JWT
+let jwtToken = process.env.CAR_API_JWT || null; // Initialize from environment variables if available
 
-// Route to generate JWT
+/**
+ * Route to manually update the JWT
+ * Request Body: { jwt: "new-token" }
+ */
+router.post('/update-jwt', (req, res) => {
+    const { jwt } = req.body;
+
+    if (!jwt) {
+        return res.status(400).json({ error: 'JWT is required.' });
+    }
+
+    jwtToken = jwt; // Update the stored JWT
+    console.log('JWT updated manually:', jwt);
+    res.status(200).json({ message: 'JWT updated successfully.' });
+});
+
+/**
+ * Route to generate a new JWT (calls CarAPI's login endpoint)
+ */
 router.post('/generate-jwt', async (req, res) => {
     try {
         const response = await axios.post('https://carapi.app/api/auth/login', {
@@ -25,26 +43,29 @@ router.post('/generate-jwt', async (req, res) => {
         console.error('Error generating JWT:', error.response?.data || error.message);
         res.status(500).json({
             error: 'Failed to generate JWT',
-            details: error.response?.data || error.message, // Send more error details for debugging
+            details: error.response?.data || error.message,
         });
     }
 });
 
-// Route to get the saved JWT
+/**
+ * Route to retrieve the current JWT
+ */
 router.get('/get-jwt', (req, res) => {
     if (!jwtToken) {
-        return res.status(404).json({ error: 'JWT not found. Generate a new one.' });
+        return res.status(404).json({ error: 'JWT not found. Generate or update one.' });
     }
     res.status(200).json({ jwt: jwtToken });
 });
 
-// Middleware to check JWT expiration and refresh if needed (optional)
-router.use(async (req, res, next) => {
+/**
+ * Middleware to check if a JWT exists (optional)
+ */
+router.use((req, res, next) => {
     if (!jwtToken) {
-        console.warn('JWT not available. Generate it first.');
-        return res.status(401).json({ error: 'JWT not available. Please generate it first.' });
+        console.warn('JWT not available. Please generate or update it first.');
+        return res.status(401).json({ error: 'JWT not available. Please generate or update it first.' });
     }
-    // Optionally, add logic to verify JWT expiration here
     next();
 });
 

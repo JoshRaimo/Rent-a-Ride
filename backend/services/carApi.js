@@ -12,6 +12,8 @@ carApiClient.interceptors.request.use((config) => {
         config.headers.Authorization = `Bearer ${jwt}`;
     }
     return config;
+}, (error) => {
+    return Promise.reject(error);
 });
 
 // Validate CAR_API_KEY availability
@@ -23,9 +25,11 @@ if (!process.env.CAR_API_KEY) {
 /**
  * Fetch car makes from CarAPI
  */
-const fetchCarMakes = async () => {
+const fetchCarMakes = async (page = 1, limit = 10) => {
     try {
-        const response = await carApiClient.get('/makes');
+        const response = await carApiClient.get('/makes', {
+            params: { page, limit },
+        });
         return response.data;
     } catch (error) {
         console.error('Error fetching car makes:', {
@@ -43,6 +47,7 @@ const fetchCarMakes = async () => {
  * @param {string} make - The car make (e.g., "Toyota").
  */
 const fetchCarModels = async (make) => {
+    if (!make) throw new Error('Make is required to fetch car models.');
     try {
         const response = await carApiClient.get('/models', {
             params: { make },
@@ -59,4 +64,27 @@ const fetchCarModels = async (make) => {
     }
 };
 
-module.exports = { fetchCarMakes, fetchCarModels };
+/**
+ * Fetch car years for a specific make and model
+ * @param {string} make - The car make (e.g., "Toyota").
+ * @param {string} model - The car model (e.g., "Corolla").
+ */
+const fetchCarYears = async (make, model) => {
+    if (!make || !model) throw new Error('Both make and model are required to fetch car years.');
+    try {
+        const response = await carApiClient.get('/years', {
+            params: { make, model },
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching car years:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status,
+            headers: error.response?.headers,
+        });
+        throw new Error('Failed to fetch car years');
+    }
+};
+
+module.exports = { fetchCarMakes, fetchCarModels, fetchCarYears };
