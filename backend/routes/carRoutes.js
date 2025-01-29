@@ -12,7 +12,7 @@ router.post('/', validateCarRequest, addCar);
 // Update a car by ID
 router.put('/:id', validateCarRequest, updateCar);
 
-// Delete a car by ID
+// Delete a car by ID (Let the controller handle image deletion)
 router.delete('/:id', deleteCar);
 
 module.exports = router;

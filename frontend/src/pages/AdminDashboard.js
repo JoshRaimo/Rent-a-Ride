@@ -103,7 +103,6 @@ const AdminDashboard = () => {
                 },
             });
             setImageUrl(response.data.imageUrl);
-            alert('Image uploaded successfully!');
         } catch (error) {
             console.error('Error uploading image:', error.message);
             alert('Failed to upload image. Please try again.');
@@ -179,8 +178,8 @@ const AdminDashboard = () => {
     };
 
     return (
-        <div className="container mx-auto mt-10 p-6 bg-white rounded shadow">
-            <h2 className="text-3xl font-bold text-center mb-6">Admin Dashboard</h2>
+        <div className="container mx-auto mt-10 p-6 bg-white rounded-lg shadow-lg">
+            <h2 className="text-3xl font-bold text-center text-primary-color mb-6">Admin Dashboard</h2>
 
             {/* Add Car Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -188,7 +187,7 @@ const AdminDashboard = () => {
                     <label className="block font-bold mb-2">Make</label>
                     <input
                         type="text"
-                        className="w-full px-3 py-2 border rounded"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
                         value={make}
                         onChange={(e) => setMake(e.target.value)}
                         placeholder="Enter car make"
@@ -198,7 +197,7 @@ const AdminDashboard = () => {
                 <div>
                     <label className="block font-bold mb-2">Model</label>
                     <select
-                        className="w-full px-3 py-2 border rounded"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
                         value={selectedModel}
                         onChange={(e) => setSelectedModel(e.target.value)}
                         required
@@ -214,7 +213,7 @@ const AdminDashboard = () => {
                 <div>
                     <label className="block font-bold mb-2">Year</label>
                     <select
-                        className="w-full px-3 py-2 border rounded"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
                         value={selectedYear}
                         onChange={(e) => setSelectedYear(e.target.value)}
                         required
@@ -231,7 +230,7 @@ const AdminDashboard = () => {
                     <label className="block font-bold mb-2">Price Per Day</label>
                     <input
                         type="number"
-                        className="w-full px-3 py-2 border rounded"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
                         value={price}
                         onChange={(e) => setPrice(e.target.value)}
                         placeholder="Enter price per day"
@@ -241,7 +240,7 @@ const AdminDashboard = () => {
                 <div>
                     <label className="block font-bold mb-2">Availability</label>
                     <select
-                        className="w-full px-3 py-2 border rounded"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
                         value={availability}
                         onChange={(e) => setAvailability(e.target.value === 'true')}
                     >
@@ -255,22 +254,22 @@ const AdminDashboard = () => {
                         type="file"
                         accept="image/*"
                         onChange={handleImageUpload}
-                        className="w-full px-3 py-2 border rounded"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     />
                 </div>
                 <button
                     type="submit"
-                    className={`w-full ${isEditing ? 'bg-yellow-500' : 'bg-blue-500'} text-white px-4 py-2 rounded`}
+                    className={`w-full ${isEditing ? 'bg-yellow-500' : 'bg-blue-500'} text-white px-4 py-2 rounded-md`}
                 >
                     {isEditing ? 'Update Car' : 'Add Car'}
                 </button>
             </form>
 
             {/* Car Listings */}
-            <h3 className="text-xl font-bold mt-8">Car Listings</h3>
+            <h3 className="text-xl font-bold text-center text-primary-color mt-8">Car Listings</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
                 {cars.map((car) => (
-                    <div key={car._id} className="border rounded shadow p-4">
+                    <div key={car._id} className="border border-gray-300 rounded-lg shadow p-4">
                         <h2 className="text-xl font-bold">{car.make} {car.model}</h2>
                         <p><strong>Year:</strong> {car.year}</p>
                         <p><strong>Price per Day:</strong> ${car.pricePerDay}</p>
@@ -279,19 +278,19 @@ const AdminDashboard = () => {
                             <img
                                 src={car.image}
                                 alt={`${car.make} ${car.model}`}
-                                className="mt-2 w-full h-auto object-cover rounded"
+                                className="mt-2 w-full h-auto object-cover rounded-md"
                                 style={{ maxHeight: '200px' }}
                             />
                         )}
                         <div className="mt-4 flex justify-between">
                             <button
-                                className="bg-yellow-500 text-white px-4 py-2 rounded"
+                                className="bg-yellow-500 text-white px-4 py-2 rounded-md"
                                 onClick={() => handleEdit(car)}
                             >
                                 Edit
                             </button>
                             <button
-                                className="bg-red-500 text-white px-4 py-2 rounded"
+                                className="bg-red-500 text-white px-4 py-2 rounded-md"
                                 onClick={() => handleDelete(car._id)}
                             >
                                 Delete

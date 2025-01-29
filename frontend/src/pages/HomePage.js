@@ -4,12 +4,14 @@ const HomePage = () => {
     return (
         <div className="homepage">
             {/* Hero Section */}
-            <section className="hero">
-                <h1 className="hero-title">Find Your Perfect Ride</h1>
-                <p className="hero-subtitle">
+            <section className="hero bg-white shadow-lg rounded-lg p-10 mx-auto max-w-4xl text-center">
+                <h1 className="hero-title text-4xl font-bold text-primary-color">
+                    Find Your Perfect Ride
+                </h1>
+                <p className="hero-subtitle text-lg text-gray-600 mt-2">
                     Rent the car of your dreams for your next adventure
                 </p>
-                <div className="flex flex-col md:flex-row justify-center gap-4">
+                <div className="search-bar flex flex-col md:flex-row justify-center gap-4 mt-6">
                     <input
                         type="text"
                         placeholder="Location"
@@ -28,20 +30,24 @@ const HomePage = () => {
             </section>
 
             {/* Featured Cars Section */}
-            <section className="py-12">
-                <h2 className="text-3xl font-bold text-center mb-8">Featured Cars</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto px-4">
+            <section className="py-12 bg-secondary-color">
+                <h2 className="text-3xl font-bold text-center text-primary-color mb-8">
+                    Featured Cars
+                </h2>
+                <div className="featured-cars grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto px-4">
                     {[1, 2, 3].map((car, idx) => (
                         <div key={idx} className="card">
-                            <div className="bg-gray-200 h-48 flex items-center justify-center card-img">
+                            <div className="card-img">
                                 <span>Car Image</span>
                             </div>
                             <div className="card-body">
-                                <h3 className="text-xl font-semibold mb-2">
+                                <h3 className="card-title">
                                     Car Model {car}
                                 </h3>
-                                <p className="text-gray-600">${50 + car * 15}/day</p>
-                                <button className="btn-primary mt-4">View Details</button>
+                                <p className="card-text">${50 + car * 15}/day</p>
+                                <button className="btn-primary mt-4">
+                                    View Details
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -50,7 +56,9 @@ const HomePage = () => {
 
             {/* How It Works Section */}
             <section className="bg-gray-100 py-12">
-                <h2 className="text-3xl font-bold text-center mb-8">How It Works</h2>
+                <h2 className="text-3xl font-bold text-center text-primary-color mb-8">
+                    How It Works
+                </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-4xl mx-auto px-4">
                     {[
                         { title: 'Search', description: 'Find the perfect car for your needs', icon: '🔍' },
@@ -59,16 +67,16 @@ const HomePage = () => {
                     ].map((step, idx) => (
                         <div key={idx} className="text-center">
                             <div className="text-4xl mb-4">{step.icon}</div>
-                            <h3 className="text-xl font-semibold mb-2">{step.title}</h3>
-                            <p className="text-gray-600">{step.description}</p>
+                            <h3 className="text-xl font-semibold text-primary-color mb-2">{step.title}</h3>
+                            <p className="text-text-color">{step.description}</p>
                         </div>
                     ))}
                 </div>
             </section>
 
             {/* Testimonials Section */}
-            <section className="py-12">
-                <h2 className="text-3xl font-bold text-center mb-8">
+            <section className="py-12 bg-secondary-color">
+                <h2 className="text-3xl font-bold text-center text-primary-color mb-8">
                     What Our Customers Say
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-6xl mx-auto px-4">
@@ -77,8 +85,8 @@ const HomePage = () => {
                         { name: 'Jane Smith', feedback: 'Smooth booking process and excellent customer support.' },
                     ].map((testimonial, idx) => (
                         <div key={idx} className="card p-6">
-                            <p className="text-gray-600 mb-4">{testimonial.feedback}</p>
-                            <h3 className="text-xl font-semibold">{testimonial.name}</h3>
+                            <p className="card-text mb-4">{testimonial.feedback}</p>
+                            <h3 className="card-title">{testimonial.name}</h3>
                             <p className="text-sm text-gray-500">
                                 {idx === 0 ? 'Happy Customer' : 'Satisfied Renter'}
                             </p>
@@ -88,7 +96,7 @@ const HomePage = () => {
             </section>
 
             {/* Footer Section */}
-            <footer className="footer">
+            <footer className="footer bg-footer-bg-color text-white">
                 <div className="grid-cols-footer max-w-7xl mx-auto px-4">
                     <div>
                         <h3 className="font-bold mb-2">Rent-a-Ride</h3>
@@ -113,7 +121,7 @@ const HomePage = () => {
                         <p>Social Media Links</p>
                     </div>
                 </div>
-                <p className="mt-4">&copy; 2025 Rent-a-Ride. All rights reserved.</p>
+                <p className="mt-4 text-sm">&copy; 2025 Rent-a-Ride. All rights reserved.</p>
             </footer>
         </div>
     );

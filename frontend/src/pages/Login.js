@@ -8,19 +8,34 @@ const Login = ({ onLoginSuccess }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false); // Added loading state
+    const [loading, setLoading] = useState(false);
+
     const navigate = useNavigate();
+
+    // Validate email format
+    const validateEmail = (email) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
 
     // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true); // Show loading state
-        setError(''); // Clear previous errors
+
+        // Validate email before sending request
+        if (!validateEmail(email)) {
+            setError('Please enter a valid email address.');
+            return;
+        }
+
+        setLoading(true);
+        setError('');
+
         try {
             const response = await axios.post(
                 `${process.env.REACT_APP_API_URL}/auth/login`,
                 { email, password }
-            );            
+            );
 
             // Save token and user data to localStorage
             const { token, user } = response.data;
@@ -36,17 +51,11 @@ const Login = ({ onLoginSuccess }) => {
             // Navigate to dashboard
             navigate('/profile');
         } catch (err) {
-            // Handle errors (network or server issues)
             console.error('Login error:', err.response?.data?.message || 'Login failed');
-            if (!err.response) {
-                setError('Network error. Please check your connection.');
-                toast.error('Network error. Please check your connection.');
-            } else {
-                setError(err.response.data.message || 'Invalid email or password');
-                toast.error(err.response.data.message || 'Login failed');
-            }
+            setError(err.response?.data?.message || 'Invalid email or password');
+            toast.error(err.response?.data?.message || 'Login failed');
         } finally {
-            setLoading(false); // Hide loading state
+            setLoading(false);
         }
     };
 
@@ -56,9 +65,6 @@ const Login = ({ onLoginSuccess }) => {
 
             {/* Display error message */}
             {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-
-            {/* Display loading state */}
-            {loading && <p className="text-blue-500 text-sm mb-4">Logging in...</p>}
 
             <form onSubmit={handleSubmit}>
                 <div className="mb-4">

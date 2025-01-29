@@ -8,8 +8,7 @@ import Register from './pages/Register';
 import HomePage from './pages/HomePage';
 import CarListingsPage from './pages/CarListingsPage';
 import ProfilePage from './pages/ProfilePage';
-import AdminDashboard from './pages/AdminDashboard'; // Import Admin Dashboard
-import CarSearch from './components/CarSearch'; // Import the CarSearch component
+import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import {
@@ -35,27 +34,26 @@ const MainApp = () => {
     const [token, setTokenState] = useState(getToken());
     const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || null);
 
-    const validateToken = () => {
-        const storedToken = getToken();
+    useEffect(() => {
+        const validateToken = () => {
+            const storedToken = getToken();
+            if (!storedToken) return;
 
-        if (!storedToken) {
-            return;
-        }
-
-        if (isTokenExpired()) {
-            console.warn('Token has expired. Logging out silently...');
-            handleLogout(false); // Silent logout
-        } else {
-            const decoded = decodeToken();
-            if (decoded) {
-                setTokenState(storedToken);
-                setUser(decoded);
+            if (isTokenExpired()) {
+                handleLogout(false);
+            } else {
+                const decoded = decodeToken();
+                if (decoded) {
+                    setTokenState(storedToken);
+                    setUser(decoded);
+                }
             }
-        }
-    };
+        };
+
+        validateToken();
+    }, []);
 
     const handleLogout = (showNotification = true) => {
-        console.log('Logging out...');
         logout(navigate);
         setTokenState(null);
         setUser(null);
@@ -74,84 +72,79 @@ const MainApp = () => {
 
     const handleUserUpdate = (updatedUser) => {
         setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser)); // Sync user data in localStorage
+        localStorage.setItem('user', JSON.stringify(updatedUser));
     };
 
-    useEffect(() => {
-        validateToken();
-    }, []);
-
     return (
-        <div className="min-h-screen bg-gray-100 flex flex-col">
-            <header className="bg-blue-600 text-white py-4 shadow-md">
-                <div className="container mx-auto flex justify-between items-center px-4">
-                    <h1 className="text-2xl font-bold">
+        <div className="min-h-screen bg-secondary-color flex flex-col">
+            {/* Navbar */}
+            <header className="navbar shadow-md bg-white">
+                <div className="container mx-auto flex justify-between items-center px-6 py-4">
+                    {/* Logo */}
+                    <h1 className="text-2xl font-bold text-primary-color">
                         <Link to="/">Rent-a-Ride</Link>
                     </h1>
-                    <nav>
-                        <ul className="flex space-x-4">
+
+                    {/* Navigation Links */}
+                    <nav className="flex-1 flex justify-center">
+                        <ul className="flex space-x-6">
                             <li>
-                                <Link to="/" className="hover:underline">
+                                <Link to="/" className="hover:text-blue-500 text-primary-color">
                                     Home
                                 </Link>
                             </li>
                             <li>
-                                <Link to="/cars" className="hover:underline">
+                                <Link to="/cars" className="hover:text-blue-500 text-primary-color">
                                     Cars
                                 </Link>
                             </li>
-                            <li>
-                                <Link to="/car-search" className="hover:underline">
-                                    Car Search
-                                </Link>
-                            </li>
-                            {!token ? (
-                                <>
-                                    <li>
-                                        <Link to="/login" className="hover:underline">
-                                            Login
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <Link to="/register" className="hover:underline">
-                                            Register
-                                        </Link>
-                                    </li>
-                                </>
-                            ) : (
-                                <>
-                                    {user?.role === 'admin' && (
-                                        <li>
-                                            <Link to="/admin-dashboard" className="hover:underline">
-                                                Admin Dashboard
-                                            </Link>
-                                        </li>
-                                    )}
-                                    <li>
-                                        <Link to="/profile" className="hover:underline">
-                                            Profile
-                                        </Link>
-                                    </li>
-                                    <li>
-                                        <span className="text-white font-semibold">
-                                            {user?.username || 'User'}
-                                        </span>
-                                    </li>
-                                    <li>
-                                        <button
-                                            onClick={() => handleLogout()}
-                                            className="hover:underline text-red-500"
-                                        >
-                                            Logout
-                                        </button>
-                                    </li>
-                                </>
-                            )}
                         </ul>
                     </nav>
+
+                    {/* Authentication/Profile Links */}
+                    <div className="flex space-x-4 items-center">
+                        {!token ? (
+                            <>
+                                <Link
+                                    to="/login"
+                                    className="hover:text-blue-500 text-primary-color text-sm"
+                                >
+                                    Login
+                                </Link>
+                                <Link to="/register" className="btn-signup">
+                                    Sign Up
+                                </Link>
+                            </>
+                        ) : (
+                            <>
+                                {user?.role === 'admin' && (
+                                    <Link
+                                        to="/admin-dashboard"
+                                        className="hover:text-blue-500 text-primary-color text-sm"
+                                    >
+                                        Admin Dashboard
+                                    </Link>
+                                )}
+                                <Link
+                                    to="/profile"
+                                    className="hover:text-blue-500 text-primary-color text-sm"
+                                >
+                                    Profile
+                                </Link>
+                                <span className="text-text-color text-sm">{user?.username || 'User'}</span>
+                                <button
+                                    onClick={handleLogout}
+                                    className="hover:text-red-500 text-primary-color text-sm"
+                                >
+                                    Logout
+                                </button>
+                            </>
+                        )}
+                    </div>
                 </div>
             </header>
 
+            {/* Main Content */}
             <main className="flex-1 container mx-auto px-4 py-6">
                 <Routes>
                     <Route path="/" element={<HomePage />} />
@@ -161,7 +154,6 @@ const MainApp = () => {
                     />
                     <Route path="/register" element={<Register />} />
                     <Route path="/cars" element={<CarListingsPage />} />
-                    <Route path="/car-search" element={<CarSearch />} />
 
                     {user?.role === 'admin' && (
                         <Route path="/admin-dashboard" element={<AdminDashboard />} />

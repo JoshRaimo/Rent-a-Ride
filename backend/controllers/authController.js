@@ -1,18 +1,43 @@
+const { check, validationResult } = require('express-validator');
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
+// Validation Middleware
+const validateRegistration = [
+    check('username')
+        .notEmpty()
+        .withMessage('Username is required')
+        .isLength({ min: 3 })
+        .withMessage('Username must be at least 3 characters long'),
+    check('email')
+        .isEmail()
+        .withMessage('Please provide a valid email address'),
+    check('password')
+        .isLength({ min: 6 })
+        .withMessage('Password must be at least 6 characters long'),
+];
+
+const validateLogin = [
+    check('email')
+        .isEmail()
+        .withMessage('Please provide a valid email address'),
+    check('password')
+        .notEmpty()
+        .withMessage('Password is required'),
+];
+
 // User registration
 const registerUser = async (req, res) => {
     try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
         const { username, email, password, role } = req.body;
 
         console.log('Register Request Body:', req.body);
-
-        // Validate input fields
-        if (!username || !email || !password) {
-            return res.status(400).json({ error: 'All fields are required' });
-        }
 
         // Check if email is already registered
         const existingUser = await User.findOne({ email });
@@ -51,13 +76,12 @@ const registerUser = async (req, res) => {
 // User login
 const loginUser = async (req, res) => {
     try {
-        console.log('Login Request Body:', req.body);
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
 
         const { email, password } = req.body;
-
-        if (!email || !password) {
-            return res.status(400).json({ error: 'Email and password are required' });
-        }
 
         // Find user by email
         const user = await User.findOne({ email });
@@ -73,12 +97,10 @@ const loginUser = async (req, res) => {
 
         // Generate JWT with username included
         const token = jwt.sign(
-            { id: user._id, username: user.username, email: user.email, role: user.role }, // Include username here
+            { id: user._id, username: user.username, email: user.email, role: user.role },
             process.env.JWT_SECRET,
             { expiresIn: '1h' }
         );
-
-        console.log('Login Successful:', { username: user.username, email: user.email });
 
         // Send response
         return res.status(200).json({
@@ -86,7 +108,7 @@ const loginUser = async (req, res) => {
             token,
             user: {
                 _id: user._id,
-                username: user.username, // Include username
+                username: user.username,
                 email: user.email,
                 role: user.role,
             },
@@ -97,4 +119,4 @@ const loginUser = async (req, res) => {
     }
 };
 
-module.exports = { registerUser, loginUser };
+module.exports = { registerUser, loginUser, validateRegistration, validateLogin };

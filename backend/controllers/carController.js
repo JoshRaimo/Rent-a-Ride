@@ -1,5 +1,7 @@
 const { validationResult } = require('express-validator');
 const Car = require('../models/Car');
+const { S3Client, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const s3 = require('../config/s3');
 
 // Get all cars
 const getAllCars = async (req, res) => {
@@ -25,7 +27,6 @@ const getAllCars = async (req, res) => {
 
         res.status(200).json({ total, page, cars });
     } catch (err) {
-        console.error('Error fetching cars:', err.message);
         res.status(500).json({ error: 'Failed to fetch cars', details: err.message });
     }
 };
@@ -52,11 +53,11 @@ const addCar = async (req, res) => {
         await car.save();
         res.status(201).json(car);
     } catch (err) {
-        console.error('Error adding car:', err.message);
         res.status(500).json({ error: 'Failed to add car', details: err.message });
     }
 };
 
+// Update car details
 const updateCar = async (req, res) => {
     const { id } = req.params;
 
@@ -67,22 +68,47 @@ const updateCar = async (req, res) => {
         }
         res.status(200).json(car);
     } catch (err) {
-        console.error('Error updating car:', err.message);
         res.status(500).json({ error: 'Failed to update car', details: err.message });
     }
 };
 
+// Delete a car and its associated image from S3
 const deleteCar = async (req, res) => {
     const { id } = req.params;
 
     try {
-        const car = await Car.findByIdAndDelete(id);
+        const car = await Car.findById(id);
         if (!car) {
             return res.status(404).json({ error: 'Car not found' });
         }
-        res.status(200).json({ message: 'Car deleted successfully' });
+
+        let imageDeleted = false;
+
+        // Delete the image from S3 if it exists
+        if (car.image) {
+            const imageKey = car.image.split('/').pop(); // Extract key from the URL
+
+            const deleteParams = {
+                Bucket: process.env.S3_BUCKET_NAME,
+                Key: `images/${imageKey}`,
+            };
+
+            try {
+                await s3.send(new DeleteObjectCommand(deleteParams));
+                imageDeleted = true;
+            } catch (s3Error) {
+                console.error('Error deleting image from S3:', s3Error.message);
+            }
+        }
+
+        if (imageDeleted || !car.image) {
+            // Only delete the car from the database if the image is deleted successfully or doesn't exist
+            await Car.findByIdAndDelete(id);
+            return res.status(200).json({ message: 'Car and associated image deleted successfully' });
+        } else {
+            return res.status(500).json({ error: 'Failed to delete image, car not removed' });
+        }
     } catch (err) {
-        console.error('Error deleting car:', err.message);
         res.status(500).json({ error: 'Failed to delete car', details: err.message });
     }
 };
