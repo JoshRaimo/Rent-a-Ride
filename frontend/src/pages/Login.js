@@ -46,7 +46,7 @@ const Login = ({ onLoginSuccess }) => {
             onLoginSuccess(token);
 
             // Display success message
-            toast.success('Login successful! Redirecting to dashboard...');
+            toast.success('Login successful! Redirecting to profile page...');
 
             // Navigate to dashboard
             navigate('/profile');

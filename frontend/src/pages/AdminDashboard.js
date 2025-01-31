@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import Select from 'react-select';
 
 const AdminDashboard = () => {
     const [cars, setCars] = useState([]);
+    const [makes, setMakes] = useState([]);
     const [make, setMake] = useState('');
     const [models, setModels] = useState([]);
     const [selectedModel, setSelectedModel] = useState('');
@@ -14,6 +16,33 @@ const AdminDashboard = () => {
     const [imageUrl, setImageUrl] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [editCarId, setEditCarId] = useState(null);
+
+    const makeOptions = makes;
+    const modelOptions = models.map(model => ({ value: model, label: model }));
+    const yearOptions = years.map(year => ({ value: year, label: year }));
+
+    // Fetch car makes from carapi
+    useEffect(() => {
+        const fetchMakes = async () => {
+            try {
+                const jwt = localStorage.getItem('carApiJwt');
+                const response = await axios.get(`${process.env.REACT_APP_API_URL}/carapi/makes`, {
+                    headers: { Authorization: `Bearer ${jwt}` },
+                });
+                setMakes(response.data.data.map((make) => ({ value: make.name, label: make.name })));
+            } catch (error) {
+                console.error('Error fetching makes:', error.message);
+                setMakes([]);
+            }
+        };
+        fetchMakes();
+    }, []);
+
+    // Define availability options
+    const availabilityOptions = [
+        { value: true, label: 'Available' },
+        { value: false, label: 'Unavailable' },
+    ];
 
     // Fetch all cars
     const fetchCars = async () => {
@@ -112,25 +141,28 @@ const AdminDashboard = () => {
     // Handle add or update car
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        const carData = {
-            make,
-            model: selectedModel,
-            year: selectedYear,
-            pricePerDay: price,
-            availabilityStatus: availability,
-            image: imageUrl,
-        };
-
+    
         try {
+            const carData = {
+                make,
+                model: selectedModel,
+                year: selectedYear,
+                pricePerDay: price,
+                availabilityStatus: availability,
+                image: imageUrl,
+            };
+    
+            let response;
             if (isEditing) {
-                await axios.put(`${process.env.REACT_APP_API_URL}/cars/${editCarId}`, carData);
-                alert('Car updated successfully!');
+                response = await axios.put(`${process.env.REACT_APP_API_URL}/cars/${editCarId}`, carData);
             } else {
-                await axios.post(`${process.env.REACT_APP_API_URL}/cars`, carData);
-                alert('Car added successfully!');
+                response = await axios.post(`${process.env.REACT_APP_API_URL}/cars`, carData);
             }
-
+    
+            if (response.data.carId) {
+                setCarId(response.data.carId); // Store the carId from MongoDB response
+            }
+    
             resetForm();
             fetchCars();
         } catch (error) {
@@ -143,7 +175,6 @@ const AdminDashboard = () => {
     const handleDelete = async (carId) => {
         try {
             await axios.delete(`${process.env.REACT_APP_API_URL}/cars/${carId}`);
-            alert('Car deleted successfully!');
             fetchCars();
         } catch (error) {
             console.error('Error deleting car:', error.message);
@@ -185,68 +216,53 @@ const AdminDashboard = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label className="block font-bold mb-2">Make</label>
-                    <input
-                        type="text"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                        value={make}
-                        onChange={(e) => setMake(e.target.value)}
-                        placeholder="Enter car make"
-                        required
+                    <Select
+                        options={makes}
+                        value={makes.find(option => option.value === make)}
+                        onChange={(selectedOption) => setMake(selectedOption ? selectedOption.value : '')}
+                        isClearable
+                        placeholder="Select or type make"
                     />
                 </div>
                 <div>
                     <label className="block font-bold mb-2">Model</label>
-                    <select
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                        value={selectedModel}
-                        onChange={(e) => setSelectedModel(e.target.value)}
-                        required
-                    >
-                        <option value="">-- Select Model --</option>
-                        {models.map((model, index) => (
-                            <option key={index} value={model}>
-                                {model}
-                            </option>
-                        ))}
-                    </select>
+                    <Select
+                        options={modelOptions}
+                        value={modelOptions.find(option => option.value === selectedModel)}
+                        onChange={(selectedOption) => setSelectedModel(selectedOption ? selectedOption.value : '')}
+                        isClearable
+                        placeholder="Select or type model"
+                    />
                 </div>
                 <div>
                     <label className="block font-bold mb-2">Year</label>
-                    <select
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                        value={selectedYear}
-                        onChange={(e) => setSelectedYear(e.target.value)}
-                        required
-                    >
-                        <option value="">-- Select Year --</option>
-                        {years.map((year, index) => (
-                            <option key={index} value={year}>
-                                {year}
-                            </option>
-                        ))}
-                    </select>
+                    <Select
+                        options={yearOptions}
+                        value={yearOptions.find(option => option.value === selectedYear)}
+                        onChange={(selectedOption) => setSelectedYear(selectedOption ? selectedOption.value : '')}
+                        isClearable
+                        placeholder="Select or type year"
+                    />
                 </div>
                 <div>
                     <label className="block font-bold mb-2">Price Per Day</label>
                     <input
-                        type="number"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        type="text"
                         value={price}
                         onChange={(e) => setPrice(e.target.value)}
                         placeholder="Enter price per day"
-                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     />
                 </div>
                 <div>
                     <label className="block font-bold mb-2">Availability</label>
-                    <select
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                        value={availability}
-                        onChange={(e) => setAvailability(e.target.value === 'true')}
-                    >
-                        <option value="true">Available</option>
-                        <option value="false">Unavailable</option>
-                    </select>
+                    <Select
+                        options={availabilityOptions}
+                        value={availabilityOptions.find(option => option.value === availability)}
+                        onChange={(selectedOption) => setAvailability(selectedOption ? selectedOption.value : true)}
+                        isClearable
+                        placeholder="Select availability"
+                    />
                 </div>
                 <div>
                     <label className="block font-bold mb-2">Upload Picture</label>

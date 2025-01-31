@@ -8,6 +8,8 @@ const router = express.Router();
 // Create a booking
 router.post('/', authenticate, async (req, res) => {
     try {
+        console.log('Authenticated User:', req.user); // Debugging
+
         const { carId, startDate, endDate } = req.body;
 
         // Validate required fields
@@ -26,8 +28,9 @@ router.post('/', authenticate, async (req, res) => {
         const conflictingBooking = await Booking.findOne({
             car: carId,
             $or: [
-                { startDate: { $lte: end, $gte: start } },
-                { endDate: { $lte: end, $gte: start } },
+                { startDate: { $lt: end, $gte: start } },
+                { endDate: { $gt: start, $lte: end } },
+                { startDate: { $lte: start }, endDate: { $gte: end } }
             ],
         });
 
@@ -37,13 +40,13 @@ router.post('/', authenticate, async (req, res) => {
 
         // Fetch car details
         const car = await Car.findById(carId);
-        if (!car || !car.price_per_day) {
+        if (!car || !car.pricePerDay) {
             return res.status(404).json({ message: 'Car not found or price per day is not defined.' });
         }
 
         // Calculate total price
         const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-        const totalPrice = days * car.price_per_day;
+        const totalPrice = days * car.pricePerDay;
 
         // Create booking
         const booking = await Booking.create({
@@ -78,7 +81,7 @@ router.get('/', authenticate, async (req, res) => {
 // Admin: Manage all bookings
 router.get('/all', authenticate, async (req, res) => {
     try {
-        if (req.user.role !== 'admin') {
+        if (!req.user || req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied. Admins only.' });
         }
 

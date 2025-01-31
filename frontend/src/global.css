@@ -21,7 +21,7 @@ body {
 /* ---- NAVBAR STYLING ---- */
 .navbar {
     background-color: white;
-    padding: 1rem;
+    padding: 0.1rem;
     box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: space-between;
@@ -41,7 +41,6 @@ body {
     color: var(--primary-color);
     font-weight: 500;
     font-size: 1rem;
-    text-transform: uppercase;
     transition: color 0.3s ease;
 }
 

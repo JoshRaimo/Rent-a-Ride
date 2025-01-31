@@ -1,6 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const HomePage = () => {
+    const navigate = useNavigate();
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
+
+    const handleSearch = () => {
+        const today = new Date().toISOString().split('T')[0];
+
+        if (startDate && endDate && startDate >= today && endDate >= today) {
+            navigate('/available-cars', { state: { startDate, endDate } });
+        } else {
+            alert('Please enter valid start and end dates');
+        }
+    };
+
     return (
         <div className="homepage">
             {/* Hero Section */}
@@ -13,19 +28,20 @@ const HomePage = () => {
                 </p>
                 <div className="search-bar flex flex-col md:flex-row justify-center gap-4 mt-6">
                     <input
-                        type="text"
-                        placeholder="Location"
+                        type="date"
                         className="border border-gray-300 rounded-md p-3 w-full md:w-auto"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
                     />
                     <input
                         type="date"
                         className="border border-gray-300 rounded-md p-3 w-full md:w-auto"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
                     />
-                    <input
-                        type="date"
-                        className="border border-gray-300 rounded-md p-3 w-full md:w-auto"
-                    />
-                    <button className="btn-primary">Search Cars</button>
+                    <button className="btn-primary" onClick={handleSearch}>Search Cars</button>
                 </div>
             </section>
 

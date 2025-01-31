@@ -20,7 +20,7 @@ const validateAuthorizationHeader = (req, res, next) => {
  */
 router.get('/makes', validateAuthorizationHeader, async (req, res) => {
     try {
-        const { page = 1, limit = 10 } = req.query; // Optional pagination parameters
+        const { page = 1, limit = 1000 } = req.query; // Optional pagination parameters
         const response = await axios.get('https://carapi.app/api/makes', {
             headers: {
                 Authorization: `Bearer ${req.jwt}`,

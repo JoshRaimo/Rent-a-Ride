@@ -9,6 +9,7 @@ import HomePage from './pages/HomePage';
 import CarListingsPage from './pages/CarListingsPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminDashboard from './pages/AdminDashboard';
+import AvailableCars from './pages/AvailableCars';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import {
@@ -94,8 +95,8 @@ const MainApp = () => {
                                 </Link>
                             </li>
                             <li>
-                                <Link to="/cars" className="hover:text-blue-500 text-primary-color">
-                                    Cars
+                                <Link to="available-cars" className="hover:text-blue-500 text-pimary-color">
+                                    Rent a Car
                                 </Link>
                             </li>
                         </ul>
@@ -105,10 +106,7 @@ const MainApp = () => {
                     <div className="flex space-x-4 items-center">
                         {!token ? (
                             <>
-                                <Link
-                                    to="/login"
-                                    className="hover:text-blue-500 text-primary-color text-sm"
-                                >
+                                <Link to="/login" className="hover:text-blue-500 text-primary-color text-sm">
                                     Login
                                 </Link>
                                 <Link to="/register" className="btn-signup">
@@ -148,12 +146,9 @@ const MainApp = () => {
             <main className="flex-1 container mx-auto px-4 py-6">
                 <Routes>
                     <Route path="/" element={<HomePage />} />
-                    <Route
-                        path="/login"
-                        element={<Login onLoginSuccess={handleLoginSuccess} />}
-                    />
+                    <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
                     <Route path="/register" element={<Register />} />
-                    <Route path="/cars" element={<CarListingsPage />} />
+                    <Route path="/available-cars" element={<AvailableCars />} />
 
                     {user?.role === 'admin' && (
                         <Route path="/admin-dashboard" element={<AdminDashboard />} />
