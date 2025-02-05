@@ -16,6 +16,7 @@ const AdminDashboard = () => {
     const [imageUrl, setImageUrl] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [editCarId, setEditCarId] = useState(null);
+    const [carId, setCarId] = useState('');
 
     const makeOptions = makes;
     const modelOptions = models.map(model => ({ value: model, label: model }));
@@ -160,7 +161,7 @@ const AdminDashboard = () => {
             }
     
             if (response.data.carId) {
-                setCarId(response.data.carId); // Store the carId from MongoDB response
+                setCarId(response.data.carId);
             }
     
             resetForm();
@@ -191,7 +192,7 @@ const AdminDashboard = () => {
         setAvailability(car.availabilityStatus);
         setImageUrl(car.image);
         setIsEditing(true);
-        setEditCarId(car._id);
+        setEditCarId(car.carId);
     };
 
     const resetForm = () => {
@@ -285,7 +286,7 @@ const AdminDashboard = () => {
             <h3 className="text-xl font-bold text-center text-primary-color mt-8">Car Listings</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
                 {cars.map((car) => (
-                    <div key={car._id} className="border border-gray-300 rounded-lg shadow p-4">
+                    <div key={car.carId} className="border border-gray-300 rounded-lg shadow p-4">
                         <h2 className="text-xl font-bold">{car.make} {car.model}</h2>
                         <p><strong>Year:</strong> {car.year}</p>
                         <p><strong>Price per Day:</strong> ${car.pricePerDay}</p>
@@ -307,7 +308,7 @@ const AdminDashboard = () => {
                             </button>
                             <button
                                 className="bg-red-500 text-white px-4 py-2 rounded-md"
-                                onClick={() => handleDelete(car._id)}
+                                onClick={() => handleDelete(car.carId)}
                             >
                                 Delete
                             </button>

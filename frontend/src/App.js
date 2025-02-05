@@ -6,11 +6,11 @@ import 'react-toastify/dist/ReactToastify.css';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import HomePage from './pages/HomePage';
-import CarListingsPage from './pages/CarListingsPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminDashboard from './pages/AdminDashboard';
 import AvailableCars from './pages/AvailableCars';
 import ProtectedRoute from './components/ProtectedRoute';
+import BookCar from './pages/BookCar';
 
 import {
     getToken,
@@ -149,6 +149,7 @@ const MainApp = () => {
                     <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
                     <Route path="/register" element={<Register />} />
                     <Route path="/available-cars" element={<AvailableCars />} />
+                    <Route path="/book-car" element={<BookCar />} />
 
                     {user?.role === 'admin' && (
                         <Route path="/admin-dashboard" element={<AdminDashboard />} />

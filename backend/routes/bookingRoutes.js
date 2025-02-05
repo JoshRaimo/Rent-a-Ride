@@ -8,13 +8,14 @@ const router = express.Router();
 // Create a booking
 router.post('/', authenticate, async (req, res) => {
     try {
-        console.log('Authenticated User:', req.user); // Debugging
+        console.log('Request Body:', req.body);
+        console.log('Authenticated User:', req.user);
 
         const { carId, startDate, endDate } = req.body;
 
-        // Validate required fields
+        // Validate request data
         if (!carId || !startDate || !endDate) {
-            return res.status(400).json({ message: 'Car ID, start date, and end date are required.' });
+            return res.status(400).json({ error: 'Car ID, start date, and end date are required' });
         }
 
         // Validate date range
@@ -48,19 +49,18 @@ router.post('/', authenticate, async (req, res) => {
         const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
         const totalPrice = days * car.pricePerDay;
 
-        // Create booking
-        const booking = await Booking.create({
+        // Example: Create a new booking
+        const booking = new Booking({
             user: req.user.id,
             car: carId,
-            startDate: start,
-            endDate: end,
+            startDate,
+            endDate,
             totalPrice,
+            status: 'pending'
         });
 
-        res.status(201).json({
-            message: 'Booking created successfully',
-            booking,
-        });
+        await booking.save();
+        res.status(201).json({ message: 'Booking created successfully', booking });
     } catch (error) {
         console.error('Error creating booking:', error.message);
         res.status(500).json({ message: 'Server error.', error: error.message });
