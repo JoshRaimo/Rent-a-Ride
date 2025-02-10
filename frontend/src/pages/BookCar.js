@@ -5,16 +5,18 @@ import axios from 'axios';
 const BookCar = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { car, startDate, endDate } = location.state || {};
+    
+    // Ensure we get all necessary data from location.state
+    const { car, startDate, startTime, endDate, endTime } = location.state || {};
 
-    if (!car) {
-        return <p>No car selected. Please go back and select a car to book.</p>;
+    if (!car || !startDate || !startTime || !endDate || !endTime) {
+        return <p>Error: Missing booking details. Please go back and select a car with valid dates and times.</p>;
     }
 
     const handleConfirmBooking = async () => {
         try {
-            const startDateTime = new Date(`${startDate}T${endDate}`);
-            const endDateTime = new Date(`${endDate}T${endDate}`);
+            const startDateTime = new Date(`${startDate}T${startTime}`);
+            const endDateTime = new Date(`${endDate}T${endTime}`);
 
             console.log('Start Date and Time:', startDateTime);
             console.log('End Date and Time:', endDateTime);
@@ -65,7 +67,7 @@ const BookCar = () => {
                     <strong>Price per Day:</strong> ${car.pricePerDay}
                 </p>
                 <p>
-                    <strong>Booking Dates:</strong> {startDate} to {endDate}
+                    <strong>Booking Dates:</strong> {startDate} ({startTime}) to {endDate} ({endTime})
                 </p>
                 {car.image && (
                     <img

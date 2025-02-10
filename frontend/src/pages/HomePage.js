@@ -5,12 +5,14 @@ const HomePage = () => {
     const navigate = useNavigate();
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
+    const [startTime, setStartTime] = useState('12:00');
+    const [endTime, setEndTime] = useState('12:00');
 
     const handleSearch = () => {
         const today = new Date().toISOString().split('T')[0];
 
         if (startDate && endDate && startDate >= today && endDate >= today) {
-            navigate('/available-cars', { state: { startDate, endDate } });
+            navigate('/available-cars', { state: { startDate, endDate, startTime, endTime } });
         } else {
             alert('Please enter valid start and end dates');
         }
@@ -35,11 +37,23 @@ const HomePage = () => {
                         min={new Date().toISOString().split('T')[0]}
                     />
                     <input
+                        type="time"
+                        className="border border-gray-300 rounded-md p-3 w-full md:w-auto"
+                        value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)}
+                    />
+                    <input
                         type="date"
                         className="border border-gray-300 rounded-md p-3 w-full md:w-auto"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
                         min={new Date().toISOString().split('T')[0]}
+                    />
+                    <input
+                        type="time"
+                        className="border border-gray-300 rounded-md p-3 w-full md:w-auto"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
                     />
                     <button className="btn-primary" onClick={handleSearch}>Search Cars</button>
                 </div>
