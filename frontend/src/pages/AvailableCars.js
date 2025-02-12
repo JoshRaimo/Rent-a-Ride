@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import CarListing from '../components/CarListing';
 
 const AvailableCars = () => {
     const location = useLocation();
@@ -40,8 +41,8 @@ const AvailableCars = () => {
     }, [filters.startDate, filters.endDate, filters.startTime, filters.endTime]);
 
     const fetchAvailableCars = async () => {
-        if (!filters.startDate || !filters.endDate) {
-            setError('Please select a start and end date.');
+        if (!filters.startDate || !filters.endDate || !filters.startTime || !filters.endTime) {
+            setError('Please select a start and end date and time.');
             return;
         }
 
@@ -50,9 +51,17 @@ const AvailableCars = () => {
 
         try {
             const response = await axios.get(`${process.env.REACT_APP_API_URL}/cars/available`, {
-                params: filters,
+                params: {
+                    startDate: filters.startDate,
+                    startTime: filters.startTime,
+                    endDate: filters.endDate,
+                    endTime: filters.endTime,
+                },
             });
-            setCars(response.data);
+
+            // **Filter out already booked cars**
+            const availableCars = response.data.filter((car) => !car.isBooked);
+            setCars(availableCars);
         } catch (err) {
             console.error('Error fetching available cars:', err);
             setError('Failed to load available cars.');
@@ -162,31 +171,13 @@ const AvailableCars = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {cars.length > 0 ? (
                         cars.map((car) => (
-                            <div key={car.carId} className="car-listing">
-                                <h2>{car.make} {car.model} {car.year}</h2>
-                                <p><strong>Price per Day:</strong> ${car.pricePerDay}</p>
-                                {car.image && (
-                                    <img
-                                        src={car.image}
-                                        alt={`${car.make} ${car.model}`}
-                                    />
-                                )}
-                                {isAuthenticated ? (
-                                    <button
-                                        className="book-button"
-                                        onClick={() => handleBookNow(car)}
-                                    >
-                                        Book Now
-                                    </button>
-                                ) : (
-                                    <button
-                                        className="login-button"
-                                        onClick={handleLoginRedirect}
-                                    >
-                                        Login to Book
-                                    </button>
-                                )}
-                            </div>
+                            <CarListing
+                                key={car.carId}
+                                car={car}
+                                showEditDeleteButtons={false}
+                                onBookNow={isAuthenticated ? handleBookNow : null}
+                                onLogin={!isAuthenticated ? handleLoginRedirect : null}
+                            />
                         ))
                     ) : (
                         <p className="text-center text-gray-500">

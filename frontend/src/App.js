@@ -153,10 +153,11 @@ const MainApp = () => {
                     <Route path="/book-car" element={<BookCar />} />
 
                     {user?.role === 'admin' && (
-                        <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
+                        <>
+                            <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
+                            <Route path="/admin-dashboard/cars" element={<CarManagement />} />
+                        </>
                     )}
-
-                    <Route path="/admin-dashboard/cars" element={<CarManagement />} />
 
                     <Route element={<ProtectedRoute />}>
                         <Route

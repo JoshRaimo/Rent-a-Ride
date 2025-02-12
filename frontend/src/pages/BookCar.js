@@ -1,27 +1,39 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import CarListing from '../components/CarListing';
 
 const BookCar = () => {
     const location = useLocation();
     const navigate = useNavigate();
     
-    // Ensure we get all necessary data from location.state
     const { car, startDate, startTime, endDate, endTime } = location.state || {};
 
     if (!car || !startDate || !startTime || !endDate || !endTime) {
         return <p>Error: Missing booking details. Please go back and select a car with valid dates and times.</p>;
     }
 
+    const parseTime = (time) => {
+        if (time.toLowerCase() === 'midnight') return '00:00';
+        if (time.toLowerCase() === 'noon') return '12:00';
+        return time;
+    };
+
     const handleConfirmBooking = async () => {
         try {
-            const startDateTime = new Date(`${startDate}T${startTime}`);
-            const endDateTime = new Date(`${endDate}T${endTime}`);
+            const startDateTime = new Date(`${startDate} ${parseTime(startTime)}`);
+            const endDateTime = new Date(`${endDate} ${parseTime(endTime)}`);
 
             console.log('Start Date and Time:', startDateTime);
             console.log('End Date and Time:', endDateTime);
 
-            if (startDateTime <= new Date()) {
+            if (isNaN(startDateTime) || isNaN(endDateTime)) {
+                alert('Invalid date or time format.');
+                return;
+            }
+
+            const now = new Date();
+            if (startDateTime <= now) {
                 alert('Start date must be in the future.');
                 return;
             }
@@ -56,23 +68,16 @@ const BookCar = () => {
             <h2 className="text-3xl font-bold text-center text-primary-color mb-6">
                 Confirm Your Booking
             </h2>
-            <div className="car-listing">
-                <h2>{car.make} {car.model} {car.year}</h2>
-                <p><strong>Price per Day:</strong> ${car.pricePerDay}</p>
-                <p><strong>Booking Dates:</strong> {startDate} ({startTime}) to {endDate} ({endTime})</p>
-                {car.image && (
-                    <img
-                        src={car.image}
-                        alt={`${car.make} ${car.model}`}
-                    />
-                )}
-                <button
-                    className="confirm-button"
-                    onClick={handleConfirmBooking}
-                >
-                    Confirm Booking
-                </button>
-            </div>
+            <CarListing
+                car={car}
+                showEditDeleteButtons={false}
+            />
+            <button
+                className="confirm-button"
+                onClick={handleConfirmBooking}
+            >
+                Confirm Booking
+            </button>
         </div>
     );
 };

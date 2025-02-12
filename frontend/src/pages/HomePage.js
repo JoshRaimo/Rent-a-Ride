@@ -38,10 +38,16 @@ const HomePage = () => {
             return;
         }
 
-        const selectedStartDateTime = new Date(`${startDate} ${startTime}`);
-        const selectedEndDateTime = new Date(`${endDate} ${endTime}`);
+        const parseTime = (time) => {
+            if (time.toLowerCase() === 'midnight') return '00:00';
+            if (time.toLowerCase() === 'noon') return '12:00';
+            return time;
+        };
 
-        if (selectedStartDateTime < now) {
+        const selectedStartDateTime = new Date(`${startDate} ${parseTime(startTime)}`);
+        const selectedEndDateTime = new Date(`${endDate} ${parseTime(endTime)}`);
+
+        if (selectedStartDateTime <= now) {
             alert('Start date and time must be in the future.');
             return;
         }

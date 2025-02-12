@@ -16,6 +16,7 @@ body {
     font-family: 'Inter', sans-serif;
     color: var(--text-color);
     background-color: var(--secondary-color);
+    padding-top: 40px; /* Ensure all content starts below the navbar */
 }
 
 /* ---- NAVBAR STYLING ---- */
@@ -342,6 +343,7 @@ body {
 .main-content {
     margin-left: 80px; /* Account for sidebar width */
     padding-top: 60px; /* Account for navbar height */
+    margin-top: 60px; /* Add this line to ensure content starts below the navbar */
 }
 
 .sidebar-link {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Select from 'react-select';
 import AdminSidebar from '../components/AdminSidebar';
+import CarListing from '../components/CarListing';
 
 const CarManagement = () => {
     const [cars, setCars] = useState([]);
@@ -278,34 +279,13 @@ const CarManagement = () => {
                 <h3 className="text-xl font-bold text-center text-primary-color mt-8">Car Listings</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
                     {cars.map((car) => (
-                        <div key={car.carId} className="border border-gray-300 rounded-lg shadow p-4">
-                            <h2 className="text-xl font-bold">{car.make} {car.model}</h2>
-                            <p><strong>Year:</strong> {car.year}</p>
-                            <p><strong>Price per Day:</strong> ${car.pricePerDay}</p>
-                            <p><strong>Available:</strong> {car.availabilityStatus ? 'Yes' : 'No'}</p>
-                            {car.image && (
-                                <img
-                                    src={car.image}
-                                    alt={`${car.make} ${car.model}`}
-                                    className="mt-2 w-full h-auto object-cover rounded-md"
-                                    style={{ maxHeight: '200px' }}
-                                />
-                            )}
-                            <div className="mt-4 flex justify-between">
-                                <button
-                                    className="bg-yellow-500 text-white px-4 py-2 rounded-md"
-                                    onClick={() => handleEdit(car)}
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    className="bg-red-500 text-white px-4 py-2 rounded-md"
-                                    onClick={() => handleDelete(car.carId)}
-                                >
-                                    Delete
-                                </button>
-                            </div>
-                        </div>
+                        <CarListing
+                            key={car.carId}
+                            car={car}
+                            onEdit={handleEdit}
+                            onDelete={handleDelete}
+                            showEditDeleteButtons={true}
+                        />
                     ))}
                 </div>
             </div>
