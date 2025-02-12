@@ -5,17 +5,53 @@ const HomePage = () => {
     const navigate = useNavigate();
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    const [startTime, setStartTime] = useState('12:00');
-    const [endTime, setEndTime] = useState('12:00');
+    const [startTime, setStartTime] = useState('Midnight');
+    const [endTime, setEndTime] = useState('Midnight');
 
-    const handleSearch = () => {
-        const today = new Date().toISOString().split('T')[0];
+    // Get current date and time
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayFormatted = today.toISOString().split("T")[0];
 
-        if (startDate && endDate && startDate >= today && endDate >= today) {
-            navigate('/available-cars', { state: { startDate, endDate, startTime, endTime } });
-        } else {
-            alert('Please enter valid start and end dates');
+    // Generate time options in 30-minute intervals with Noon and Midnight labels
+    const generateTimeOptions = () => {
+        const options = [];
+        for (let hour = 0; hour < 24; hour++) {
+            for (let minute = 0; minute < 60; minute += 30) {
+                const time = new Date();
+                time.setHours(hour, minute, 0, 0);
+                let label = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+
+                if (label === '12:00 AM') label = 'Midnight';
+                if (label === '12:00 PM') label = 'Noon';
+
+                options.push({ value: label, label });
+            }
         }
+        return options;
+    };
+
+    // Handle Search Button Click
+    const handleSearch = () => {
+        if (!startDate || !endDate || !startTime || !endTime) {
+            alert('Please enter valid start and end dates and times.');
+            return;
+        }
+
+        const selectedStartDateTime = new Date(`${startDate} ${startTime}`);
+        const selectedEndDateTime = new Date(`${endDate} ${endTime}`);
+
+        if (selectedStartDateTime < now) {
+            alert('Start date and time must be in the future.');
+            return;
+        }
+
+        if (selectedEndDateTime <= selectedStartDateTime) {
+            alert('End date and time must be after the start time.');
+            return;
+        }
+
+        navigate('/available-cars', { state: { startDate, startTime, endDate, endTime } });
     };
 
     return (
@@ -29,33 +65,51 @@ const HomePage = () => {
                     Rent the car of your dreams for your next adventure
                 </p>
                 <div className="search-bar flex flex-col md:flex-row justify-center gap-4 mt-6">
+                    
+                    {/* Start Date Input */}
                     <input
                         type="date"
                         className="border border-gray-300 rounded-md p-3 w-full md:w-auto"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        min={new Date().toISOString().split('T')[0]}
+                        min={todayFormatted}
                     />
-                    <input
-                        type="time"
+                    
+                    {/* Start Time Dropdown */}
+                    <select
                         className="border border-gray-300 rounded-md p-3 w-full md:w-auto"
                         value={startTime}
                         onChange={(e) => setStartTime(e.target.value)}
-                    />
+                    >
+                        {generateTimeOptions().map((time, index) => (
+                            <option key={index} value={time.value}>{time.label}</option>
+                        ))}
+                    </select>
+
+                    {/* End Date Input */}
                     <input
                         type="date"
                         className="border border-gray-300 rounded-md p-3 w-full md:w-auto"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        min={new Date().toISOString().split('T')[0]}
+                        min={startDate || todayFormatted}
                     />
-                    <input
-                        type="time"
+                    
+                    {/* End Time Dropdown */}
+                    <select
                         className="border border-gray-300 rounded-md p-3 w-full md:w-auto"
                         value={endTime}
                         onChange={(e) => setEndTime(e.target.value)}
-                    />
-                    <button className="btn-primary" onClick={handleSearch}>Search Cars</button>
+                    >
+                        {generateTimeOptions().map((time, index) => (
+                            <option key={index} value={time.value}>{time.label}</option>
+                        ))}
+                    </select>
+
+                    {/* Search Button */}
+                    <button className="btn-primary" onClick={handleSearch}>
+                        Search Cars
+                    </button>
                 </div>
             </section>
 

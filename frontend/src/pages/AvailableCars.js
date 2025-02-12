@@ -10,29 +10,28 @@ const AvailableCars = () => {
     const [cars, setCars] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [isAuthenticated, setIsAuthenticated] = useState(false); // Ensure proper auth state tracking
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+
     const [filters, setFilters] = useState({
         startDate: location.state?.startDate || '',
-        startTime: location.state?.startTime || '12:00',
+        startTime: location.state?.startTime || '',
         endDate: location.state?.endDate || '',
-        endTime: location.state?.endTime || '12:00',
+        endTime: location.state?.endTime || '',
     });
 
-    // Effect to check authentication state dynamically
     useEffect(() => {
         const checkAuth = () => {
             const token = localStorage.getItem('token');
             setIsAuthenticated(!!token);
         };
 
-        checkAuth(); // Run immediately
-        window.addEventListener('storage', checkAuth); // Listen for storage updates
-        return () => window.removeEventListener('storage', checkAuth); // Cleanup
+        checkAuth();
+        window.addEventListener('storage', checkAuth);
+        return () => window.removeEventListener('storage', checkAuth);
     }, []);
 
-    // Minimum allowed date (today)
     const today = new Date();
-    const minDate = today.toISOString().split('T')[0];
+    const todayFormatted = today.toISOString().split('T')[0];
 
     useEffect(() => {
         if (filters.startDate && filters.endDate) {
@@ -40,7 +39,6 @@ const AvailableCars = () => {
         }
     }, [filters.startDate, filters.endDate, filters.startTime, filters.endTime]);
 
-    // Fetch available cars
     const fetchAvailableCars = async () => {
         if (!filters.startDate || !filters.endDate) {
             setError('Please select a start and end date.');
@@ -63,12 +61,10 @@ const AvailableCars = () => {
         }
     };
 
-    // Handle when a user clicks "Book Now"
     const handleBookNow = (car) => {
         navigate('/book-car', { state: { car, ...filters } });
     };
 
-    // Handle when a user clicks "Login to Book"
     const handleLoginRedirect = () => {
         toast.warn('You must be logged in to book a car.', {
             position: 'top-center',
@@ -84,12 +80,29 @@ const AvailableCars = () => {
         }, 3000);
     };
 
-    // Handle date/time changes
     const handleInputChange = (field, value) => {
         setFilters((prevFilters) => ({
             ...prevFilters,
             [field]: value,
         }));
+    };
+
+    // Generate time options in 30-minute intervals with "Midnight" and "Noon" labels
+    const generateTimeOptions = () => {
+        const options = [];
+        for (let hour = 0; hour < 24; hour++) {
+            for (let minute = 0; minute < 60; minute += 30) {
+                const time = new Date();
+                time.setHours(hour, minute, 0, 0);
+                let label = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+
+                if (label === '12:00 AM') label = 'Midnight';
+                if (label === '12:00 PM') label = 'Noon';
+
+                options.push({ value: label, label });
+            }
+        }
+        return options;
     };
 
     return (
@@ -105,27 +118,38 @@ const AvailableCars = () => {
                     className="px-3 py-2 border border-gray-300 rounded-md"
                     value={filters.startDate}
                     onChange={(e) => handleInputChange('startDate', e.target.value)}
-                    min={minDate}
+                    min={todayFormatted}
                 />
-                <input
-                    type="time"
+
+                <select
                     className="px-3 py-2 border border-gray-300 rounded-md"
                     value={filters.startTime}
                     onChange={(e) => handleInputChange('startTime', e.target.value)}
-                />
+                >
+                    <option value="">Select Time</option>
+                    {generateTimeOptions().map((time, index) => (
+                        <option key={index} value={time.value}>{time.label}</option>
+                    ))}
+                </select>
+
                 <input
                     type="date"
                     className="px-3 py-2 border border-gray-300 rounded-md"
                     value={filters.endDate}
                     onChange={(e) => handleInputChange('endDate', e.target.value)}
-                    min={filters.startDate || minDate}
+                    min={filters.startDate || todayFormatted}
                 />
-                <input
-                    type="time"
+
+                <select
                     className="px-3 py-2 border border-gray-300 rounded-md"
                     value={filters.endTime}
                     onChange={(e) => handleInputChange('endTime', e.target.value)}
-                />
+                >
+                    <option value="">Select Time</option>
+                    {generateTimeOptions().map((time, index) => (
+                        <option key={index} value={time.value}>{time.label}</option>
+                    ))}
+                </select>
             </div>
 
             {/* Error Message */}
@@ -138,37 +162,25 @@ const AvailableCars = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {cars.length > 0 ? (
                         cars.map((car) => (
-                            <div key={car.carId} className="border border-gray-300 rounded-lg shadow p-4">
-                                <h2 className="text-xl font-bold">
-                                    {car.make} {car.model}
-                                </h2>
-                                <p>
-                                    <strong>Year:</strong> {car.year}
-                                </p>
-                                <p>
-                                    <strong>Price per Day:</strong> ${car.pricePerDay}
-                                </p>
-                                <p>
-                                    <strong>Available:</strong> {car.availabilityStatus ? 'Yes' : 'No'}
-                                </p>
+                            <div key={car.carId} className="car-listing">
+                                <h2>{car.make} {car.model} {car.year}</h2>
+                                <p><strong>Price per Day:</strong> ${car.pricePerDay}</p>
                                 {car.image && (
                                     <img
                                         src={car.image}
                                         alt={`${car.make} ${car.model}`}
-                                        className="mt-2 w-full h-auto object-cover rounded-md"
-                                        style={{ maxHeight: '200px' }}
                                     />
                                 )}
                                 {isAuthenticated ? (
                                     <button
-                                        className="mt-3 px-4 py-2 rounded-md bg-green-500 text-white hover:bg-green-600"
+                                        className="book-button"
                                         onClick={() => handleBookNow(car)}
                                     >
                                         Book Now
                                     </button>
                                 ) : (
                                     <button
-                                        className="mt-3 px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600"
+                                        className="login-button"
                                         onClick={handleLoginRedirect}
                                     >
                                         Login to Book

@@ -56,29 +56,18 @@ const BookCar = () => {
             <h2 className="text-3xl font-bold text-center text-primary-color mb-6">
                 Confirm Your Booking
             </h2>
-            <div className="border border-gray-300 rounded-lg shadow p-4">
-                <h2 className="text-xl font-bold">
-                    {car.make} {car.model}
-                </h2>
-                <p>
-                    <strong>Year:</strong> {car.year}
-                </p>
-                <p>
-                    <strong>Price per Day:</strong> ${car.pricePerDay}
-                </p>
-                <p>
-                    <strong>Booking Dates:</strong> {startDate} ({startTime}) to {endDate} ({endTime})
-                </p>
+            <div className="car-listing">
+                <h2>{car.make} {car.model} {car.year}</h2>
+                <p><strong>Price per Day:</strong> ${car.pricePerDay}</p>
+                <p><strong>Booking Dates:</strong> {startDate} ({startTime}) to {endDate} ({endTime})</p>
                 {car.image && (
                     <img
                         src={car.image}
                         alt={`${car.make} ${car.model}`}
-                        className="mt-2 w-full h-auto object-cover rounded-md"
-                        style={{ maxHeight: '200px' }}
                     />
                 )}
                 <button
-                    className="mt-3 bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+                    className="confirm-button"
                     onClick={handleConfirmBooking}
                 >
                     Confirm Booking
