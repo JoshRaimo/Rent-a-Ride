@@ -46,19 +46,17 @@ const getAllCars = async (req, res) => {
 // Get available cars based on date range
 const getAvailableCars = async (req, res) => {
     try {
-        const { startDate, startTime, endDate, endTime } = req.query;
-        if (!startDate || !endDate || !startTime || !endTime) {
-            return res.status(400).json({ error: 'Start date, start time, end date, and end time are required' });
+        const { startDate, endDate } = req.query;
+        if (!startDate || !endDate) {
+            return res.status(400).json({ error: 'Start date and end date are required' });
         }
-
-        const startDateTime = new Date(`${startDate}T${startTime}`);
-        const endDateTime = new Date(`${endDate}T${endTime}`);
 
         const bookedCars = await Booking.find({
             $or: [
-                { startDate: { $lt: endDateTime }, endDate: { $gt: startDateTime } }
+                { startDate: { $lte: endDate }, endDate: { $gte: startDate } },
+                { startDate: { $gte: startDate, $lte: endDate } },
             ],
-        }).distinct('car');
+        }).distinct('car'); 
 
         const availableCars = await Car.find({ _id: { $nin: bookedCars } });
 
