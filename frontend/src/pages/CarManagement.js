@@ -214,7 +214,7 @@ const CarManagement = () => {
         <div className="flex">
             <AdminSidebar />
             <div className="flex-1 ml-20 mt-16 p-6 bg-white rounded-lg shadow-lg">
-                <h2 className="text-3xl font-bold text-center text-primary-color mb-6">Admin Dashboard</h2>
+                <h2 className="text-3xl font-bold text-center text-primary-color mb-6">Car Management</h2>
 
                 {/* Add Car Form */}
                 <form onSubmit={handleSubmit} className="space-y-4">

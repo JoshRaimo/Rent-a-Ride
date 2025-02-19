@@ -12,6 +12,7 @@ import AvailableCars from './pages/AvailableCars';
 import ProtectedRoute from './components/ProtectedRoute';
 import BookCar from './pages/BookCar';
 import CarManagement from './pages/CarManagement';
+import UserManagement from './pages/UserManagement';
 
 import {
     getToken,
@@ -156,6 +157,7 @@ const MainApp = () => {
                         <>
                             <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
                             <Route path="/admin-dashboard/cars" element={<CarManagement />} />
+                            <Route path="/admin-dashboard/users" element={<UserManagement />} />
                         </>
                     )}
 

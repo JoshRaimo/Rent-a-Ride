@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import AdminSidebar from '../components/AdminSidebar';
 import CarManagement from './CarManagement';
-
+import UserManagement from './UserManagement';
 const AdminDashboard = () => {
     const [userCount, setUserCount] = useState(0);
     const [carCount, setCarCount] = useState(0);
@@ -48,6 +48,7 @@ const AdminDashboard = () => {
                         </div>
                     } />
                     <Route path="cars" element={<CarManagement />} />
+                    <Route path="users" element={<UserManagement />} />
                     {/* Add routes for users and bookings management */}
                 </Routes>
             </div>
