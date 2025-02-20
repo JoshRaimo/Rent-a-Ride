@@ -1,65 +1,71 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import CarListing from '../components/CarListing';
 
 const BookCar = () => {
     const location = useLocation();
     const navigate = useNavigate();
     
-    const { car, startDate, startTime, endDate, endTime } = location.state || {};
+    const car = location.state?.car || null;
+    const carId = car?.carId || car?._id || null;
+    const startDate = location.state?.startDate || null;
+    const startTime = location.state?.startTime || null;
+    const endDate = location.state?.endDate || null;
+    const endTime = location.state?.endTime || null;
 
-    if (!car || !startDate || !startTime || !endDate || !endTime) {
-        return <p>Error: Missing booking details. Please go back and select a car with valid dates and times.</p>;
+    if (!car || !carId || !startDate || !startTime || !endDate || !endTime) {
+        return (
+            <div className="text-center text-red-500 mt-10">
+                <p>Error: Missing booking details. Please go back and select a car with valid dates and times.</p>
+            </div>
+        );
     }
 
     const parseTime = (time) => {
+        if (!time) return null;
         if (time.toLowerCase() === 'midnight') return '00:00';
         if (time.toLowerCase() === 'noon') return '12:00';
-        return time;
+        return time.match(/^\d{1,2}:\d{2} (AM|PM)$/)
+            ? new Date(`1970-01-01 ${time}`).toLocaleTimeString('en-GB', { hour12: false }).slice(0, 5)
+            : null;
     };
 
     const handleConfirmBooking = async () => {
         try {
-            const startDateTime = new Date(`${startDate} ${parseTime(startTime)}`);
-            const endDateTime = new Date(`${endDate} ${parseTime(endTime)}`);
+            const formattedStartTime = parseTime(startTime);
+            const formattedEndTime = parseTime(endTime);
 
-            console.log('Start Date and Time:', startDateTime);
-            console.log('End Date and Time:', endDateTime);
+            if (!formattedStartTime || !formattedEndTime) {
+                alert('Invalid time format. Please re-select the start and end times.');
+                return;
+            }
+
+            const startDateTime = new Date(`${startDate}T${formattedStartTime}:00Z`);
+            const endDateTime = new Date(`${endDate}T${formattedEndTime}:00Z`);
 
             if (isNaN(startDateTime) || isNaN(endDateTime)) {
-                alert('Invalid date or time format.');
-                return;
-            }
-
-            const now = new Date();
-            if (startDateTime <= now) {
-                alert('Start date must be in the future.');
-                return;
-            }
-
-            if (startDateTime >= endDateTime) {
-                alert('End date must be after the start date.');
+                alert('Invalid date or time selection. Please check your inputs.');
                 return;
             }
 
             const response = await axios.post(`${process.env.REACT_APP_API_URL}/bookings`, {
-                carId: car.carId,
+                carId,
                 startDate: startDateTime.toISOString(),
                 endDate: endDateTime.toISOString(),
             }, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
-                }
+                    'Content-Type': 'application/json',
+                },
             });
 
             if (response.status === 201) {
-                alert('Booking confirmed!');
+                alert('Booking confirmed! Redirecting...');
                 navigate('/');
             }
         } catch (error) {
-            console.error('Error confirming booking:', error.response?.data?.message || error.message);
-            alert('Failed to confirm booking. Please try again.');
+            console.error('Error confirming booking:', error.response?.data || error.message);
+            alert(`Failed to confirm booking: ${error.response?.data?.message || 'Please try again.'}`);
         }
     };
 
@@ -68,16 +74,24 @@ const BookCar = () => {
             <h2 className="text-3xl font-bold text-center text-primary-color mb-6">
                 Confirm Your Booking
             </h2>
-            <CarListing
-                car={car}
-                showEditDeleteButtons={false}
-            />
-            <button
-                className="confirm-button"
-                onClick={handleConfirmBooking}
-            >
-                Confirm Booking
-            </button>
+
+            {/* Display Car Details */}
+            <div className="flex justify-center items-center">
+                <div className="border p-4 rounded-lg shadow-lg w-full max-w-md bg-gray-100">
+                    <img src={car.image} alt={car.make} className="w-full h-48 object-cover rounded-md" />
+                    <h3 className="text-xl font-semibold text-center mt-2">{car.make} {car.model} ({car.year})</h3>
+                    <p className="text-center text-gray-600">${car.pricePerDay} per day</p>
+                </div>
+            </div>
+
+            <div className="flex justify-center mt-6">
+                <button
+                    className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition"
+                    onClick={handleConfirmBooking}
+                >
+                    Confirm Booking
+                </button>
+            </div>
         </div>
     );
 };

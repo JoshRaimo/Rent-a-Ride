@@ -41,38 +41,43 @@ const AvailableCars = () => {
     }, [filters.startDate, filters.endDate, filters.startTime, filters.endTime]);
 
     const fetchAvailableCars = async () => {
-        if (!filters.startDate || !filters.endDate || !filters.startTime || !filters.endTime) {
-            setError('Please select a start and end date and time.');
+        if (!filters.startDate || !filters.endDate) {
+            setError('Please select a start and end date.');
             return;
         }
-
+    
         setLoading(true);
         setError(null);
-
+    
         try {
             const response = await axios.get(`${process.env.REACT_APP_API_URL}/cars/available`, {
                 params: {
                     startDate: filters.startDate,
-                    startTime: filters.startTime,
                     endDate: filters.endDate,
-                    endTime: filters.endTime,
                 },
             });
-
-            // **Filter out already booked cars**
-            const availableCars = response.data.filter((car) => !car.isBooked);
-            setCars(availableCars);
+    
+            setCars(response.data); // Refresh car list
         } catch (err) {
             console.error('Error fetching available cars:', err);
             setError('Failed to load available cars.');
         } finally {
             setLoading(false);
         }
-    };
+    };    
+
 
     const handleBookNow = (car) => {
-        navigate('/book-car', { state: { car, ...filters } });
-    };
+        navigate('/book-car', { 
+            state: { 
+                car,  // Send full car object
+                startDate: filters.startDate,
+                startTime: filters.startTime,
+                endDate: filters.endDate,
+                endTime: filters.endTime
+            } 
+        });
+    };     
 
     const handleLoginRedirect = () => {
         toast.warn('You must be logged in to book a car.', {

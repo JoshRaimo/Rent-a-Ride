@@ -47,30 +47,29 @@ const getAllCars = async (req, res) => {
 const getAvailableCars = async (req, res) => {
     try {
         const { startDate, endDate } = req.query;
+
         if (!startDate || !endDate) {
             return res.status(400).json({ error: 'Start date and end date are required' });
         }
 
-        const bookedCars = await Booking.find({
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        if (isNaN(start) || isNaN(end) || start >= end) {
+            return res.status(400).json({ error: 'Invalid date range. Start date must be before end date.' });
+        }
+
+        // Find booked cars in the selected date range
+        const bookedCarIds = await Booking.find({
             $or: [
-                { startDate: { $lte: endDate }, endDate: { $gte: startDate } },
-                { startDate: { $gte: startDate, $lte: endDate } },
+                { startDate: { $lte: end }, endDate: { $gte: start } }, // Overlapping bookings
             ],
-        }).distinct('car'); 
+        }).distinct('car');
 
-        const availableCars = await Car.find({ _id: { $nin: bookedCars } });
+        // Fetch only available cars (not in bookedCarIds)
+        const availableCars = await Car.find({ _id: { $nin: bookedCarIds } });
 
-        const formattedCars = availableCars.map(car => ({
-            carId: car._id,
-            make: car.make,
-            model: car.model,
-            year: car.year,
-            pricePerDay: car.pricePerDay,
-            availabilityStatus: car.availabilityStatus,
-            image: car.image
-        }));
-
-        res.status(200).json(formattedCars);
+        res.status(200).json(availableCars);
     } catch (err) {
         console.error('Error fetching available cars:', err.message);
         res.status(500).json({ error: 'Failed to fetch available cars', details: err.message });
