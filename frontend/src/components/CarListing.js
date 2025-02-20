@@ -3,10 +3,8 @@ import React from 'react';
 const CarListing = ({ car, onEdit, onDelete, showEditDeleteButtons, onBookNow, onLogin }) => {
     return (
         <div className="car-listing">
-            <h2 className="text-xl font-bold">{car.make} {car.model}</h2>
-            <p><strong>Year:</strong> {car.year}</p>
-            <p><strong>Price per Day:</strong> ${car.pricePerDay}</p>
-            <p><strong>Available:</strong> {car.availabilityStatus ? 'Yes' : 'No'}</p>
+            <h2 className="text-xl font-bold">{car.make} {car.model} {car.year}</h2>
+            <p style={{ textAlign: 'center' }}> <strong>${car.pricePerDay}/day</strong> </p>
             {car.image && (
                 <img
                     src={car.image}
