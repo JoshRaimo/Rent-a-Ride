@@ -4,12 +4,7 @@ import AdminSidebar from '../components/AdminSidebar';
 
 const UserManagement = () => {
     const [users, setUsers] = useState([]);
-    const [username, setUsername] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [role, setRole] = useState('user');
-    const [isEditing, setIsEditing] = useState(false);
-    const [editUserId, setEditUserId] = useState(null);
+    const [search, setSearch] = useState('');
     const [error, setError] = useState('');
 
     useEffect(() => {
@@ -18,73 +13,45 @@ const UserManagement = () => {
 
     const fetchUsers = async () => {
         try {
-            const response = await axios.get(`${process.env.REACT_APP_API_URL}/users/all`, {
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/users`, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
                 },
             });
             setUsers(response.data);
         } catch (error) {
-            console.error('Error fetching users:', error.message);
+            console.error('Error fetching users:', error.response?.data?.message || error.message);
             setError('Failed to load users.');
         }
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleResetPassword = async (userId) => {
         try {
-            const userData = { username, email, password, role };
-
-            if (isEditing) {
-                await axios.put(`${process.env.REACT_APP_API_URL}/users/update/${editUserId}`, userData, {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem('token')}`,
-                    },
-                });
-            } else {
-                await axios.post(`${process.env.REACT_APP_API_URL}/users/add`, userData, {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem('token')}`,
-                    },
-                });
-            }
-            resetForm();
-            fetchUsers();
-        } catch (error) {
-            console.error('Error submitting user data:', error.response?.data?.message || error.message);
-            setError('Failed to save user. Please try again.');
-        }
-    };
-
-    const handleDelete = async (userId) => {
-        try {
-            await axios.delete(`${process.env.REACT_APP_API_URL}/users/delete/${userId}`, {
+            await axios.patch(`${process.env.REACT_APP_API_URL}/users/${userId}/reset-password`, {}, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
                 },
             });
-            fetchUsers();
+            alert('Password reset successfully to DefaultPass123');
         } catch (error) {
-            console.error('Error deleting user:', error.message);
+            console.error('Error resetting password:', error.response?.data?.message || error.message);
+            alert('Failed to reset password.');
         }
     };
 
-    const handleEdit = (user) => {
-        setUsername(user.username);
-        setEmail(user.email);
-        setPassword(''); // Reset password for security
-        setRole(user.role);
-        setIsEditing(true);
-        setEditUserId(user._id);
-    };
-
-    const resetForm = () => {
-        setUsername('');
-        setEmail('');
-        setPassword('');
-        setRole('user');
-        setIsEditing(false);
-        setEditUserId(null);
+    const handleDeleteUser = async (userId) => {
+        if (!window.confirm('Are you sure you want to delete this user?')) return;
+        try {
+            await axios.delete(`${process.env.REACT_APP_API_URL}/users/${userId}`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
+            setUsers(users.filter(user => user._id !== userId));
+        } catch (error) {
+            console.error('Error deleting user:', error.response?.data?.message || error.message);
+            alert('Failed to delete user.');
+        }
     };
 
     return (
@@ -93,92 +60,38 @@ const UserManagement = () => {
             <div className="flex-1 ml-20 mt-16 p-6 bg-white rounded-lg shadow-lg">
                 <h2 className="text-3xl font-bold text-center text-primary-color mb-6">User Management</h2>
                 {error && <p className="text-red-500">{error}</p>}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block font-bold mb-2">Username</label>
-                        <input
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            placeholder="Enter username"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block font-bold mb-2">Email</label>
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Enter email"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block font-bold mb-2">Password</label>
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder={isEditing ? "Enter new password (leave blank to keep unchanged)" : "Enter password"}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                            required={!isEditing} // Only required for new users
-                        />
-                    </div>
-                    <div>
-                        <label className="block font-bold mb-2">Role</label>
-                        <select
-                            value={role}
-                            onChange={(e) => setRole(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                        >
-                            <option value="user">User</option>
-                            <option value="admin">Admin</option>
-                        </select>
-                    </div>
-                    <button
-                        type="submit"
-                        className={`w-full ${isEditing ? 'bg-yellow-500' : 'bg-blue-500'} text-white px-4 py-2 rounded-md`}
-                    >
-                        {isEditing ? 'Update User' : 'Add User'}
-                    </button>
-                </form>
+                <input 
+                    type="text" 
+                    placeholder="Search users..." 
+                    className="border p-2 rounded w-full mb-4" 
+                    value={search} 
+                    onChange={(e) => setSearch(e.target.value)}
+                />
                 <h3 className="text-xl font-bold text-center text-primary-color mt-8">User List</h3>
-                <table className="min-w-full bg-white border border-gray-300">
-                    <thead>
-                        <tr className="bg-gray-200">
-                            <th className="py-2 border">Username</th>
-                            <th className="py-2 border">Email</th>
-                            <th className="py-2 border">Role</th>
-                            <th className="py-2 border">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {Array.isArray(users) && users.map((user) => (
-                            <tr key={user._id} className="text-center border">
-                                <td className="py-2 border">{user.username}</td>
-                                <td className="py-2 border">{user.email}</td>
-                                <td className="py-2 border">{user.role}</td>
-                                <td className="py-2 border">
-                                    <button
-                                        onClick={() => handleEdit(user)}
-                                        className="bg-yellow-500 text-white px-2 py-1 rounded-md mx-1"
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {users.filter(user => user.username.toLowerCase().includes(search.toLowerCase()))
+                        .map(user => (
+                            <div key={user._id} className="border p-4 rounded shadow-md">
+                                <h2 className="text-lg font-semibold">{user.username}</h2>
+                                <p>Email: {user.email}</p>
+                                <p>Role: {user.role}</p>
+                                <button 
+                                    className="bg-blue-500 text-white p-2 rounded mt-2"
+                                    onClick={() => handleResetPassword(user._id)}
+                                >
+                                    Reset Password
+                                </button>
+                                {user.role !== 'admin' && (
+                                    <button 
+                                        className="bg-red-500 text-white p-2 rounded mt-2 ml-2"
+                                        onClick={() => handleDeleteUser(user._id)}
                                     >
-                                        Edit
+                                        Delete User
                                     </button>
-                                    <button
-                                        onClick={() => handleDelete(user._id)}
-                                        className="bg-red-500 text-white px-2 py-1 rounded-md mx-1"
-                                    >
-                                        Delete
-                                    </button>
-                                </td>
-                            </tr>
+                                )}
+                            </div>
                         ))}
-                    </tbody>
-                </table>
+                </div>
             </div>
         </div>
     );

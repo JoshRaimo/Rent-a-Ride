@@ -54,18 +54,6 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/jwt', jwtRoutes);
 app.use('/api/images', imageRoutes);
 
-// Serve React frontend
-const frontendPath = path.join(__dirname, '../frontend/build');
-app.use(express.static(frontendPath));
-
-app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendPath, 'index.html'), (err) => {
-        if (err) {
-            res.status(500).send('An error occurred while serving the frontend.');
-        }
-    });
-});
-
 // Error handling middleware
 app.use(errorHandler);
 
@@ -80,6 +68,21 @@ mongoose
         console.error('MongoDB connection error:', err.message);
         process.exit(1);
     });
+
+// Serve React frontend **after API routes**
+const frontendPath = path.join(__dirname, '../frontend/build');
+app.use(express.static(frontendPath));
+
+app.get('*', (req, res) => {
+    if (req.originalUrl.startsWith('/api')) {
+        return res.status(404).json({ message: 'API route not found' });
+    }
+    res.sendFile(path.join(frontendPath, 'index.html'), (err) => {
+        if (err) {
+            res.status(500).send('An error occurred while serving the frontend.');
+        }
+    });
+});
 
 // Graceful shutdown
 process.on('SIGINT', async () => {

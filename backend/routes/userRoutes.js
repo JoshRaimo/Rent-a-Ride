@@ -1,14 +1,13 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const { authenticate } = require('../middleware/authMiddleware');
+const { getAllUsers, resetUserPassword, deleteUser } = require('../controllers/userController');
 const User = require('../models/User');
 
 const router = express.Router();
 
-// Test route to verify userRoutes are working
-router.get('/', (req, res) => {
-    res.status(200).json({ message: 'User routes are working!' });
-});
+// Get all users
+router.get('/', getAllUsers);
 
 // Get user profile
 router.get('/profile', authenticate, async (req, res) => {
@@ -78,5 +77,9 @@ router.put('/change-password', authenticate, async (req, res) => {
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
+
+// User Management
+router.patch('/users/:id/reset-password', resetUserPassword);
+router.delete('/users/:id', deleteUser);
 
 module.exports = router;
