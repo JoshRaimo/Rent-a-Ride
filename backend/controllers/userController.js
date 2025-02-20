@@ -4,10 +4,8 @@ const bcrypt = require('bcrypt');
 // Get user profile
 const getUserProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select('-password'); // Exclude password
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
+        const user = await User.findById(req.user.id).select('-password');
+        if (!user) return res.status(404).json({ message: 'User not found' });
         res.status(200).json(user);
     } catch (error) {
         console.error("Error fetching user profile:", error);
@@ -20,15 +18,12 @@ const updateUserProfile = async (req, res) => {
     try {
         const { username, email } = req.body;
         const user = await User.findById(req.user.id);
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
+        if (!user) return res.status(404).json({ message: 'User not found' });
 
         user.username = username || user.username;
         user.email = email || user.email;
-
         const updatedUser = await user.save();
+
         res.status(200).json({ message: 'Profile updated', user: updatedUser });
     } catch (error) {
         console.error("Error updating profile:", error);
@@ -41,15 +36,10 @@ const changePassword = async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;
         const user = await User.findById(req.user.id);
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
+        if (!user) return res.status(404).json({ message: 'User not found' });
 
         const isMatch = await bcrypt.compare(currentPassword, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Incorrect current password' });
-        }
+        if (!isMatch) return res.status(400).json({ message: 'Incorrect current password' });
 
         user.password = await bcrypt.hash(newPassword, 10);
         await user.save();
@@ -65,9 +55,7 @@ const changePassword = async (req, res) => {
 const getAllUsers = async (req, res) => {
     try {
         const users = await User.find({}, '-password');
-        if (!users.length) {
-            return res.status(404).json({ message: 'No users found' });
-        }
+        if (!users.length) return res.status(404).json({ message: 'No users found' });
         res.status(200).json(users);
     } catch (error) {
         console.error("Error fetching users:", error);
@@ -79,15 +67,13 @@ const getAllUsers = async (req, res) => {
 const resetUserPassword = async (req, res) => {
     try {
         const { id } = req.params;
-        const newPassword = 'password'; // Temporary password
+        const newPassword = 'password'; // Default password
         const hashedPassword = await bcrypt.hash(newPassword, 10);
 
         const user = await User.findByIdAndUpdate(id, { password: hashedPassword }, { new: true });
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
+        if (!user) return res.status(404).json({ message: 'User not found' });
 
-        res.status(200).json({ message: 'User password has been reset to DefaultPass123' });
+        res.status(200).json({ message: 'User password has been reset to "password"' });
     } catch (error) {
         console.error("Error resetting user password:", error);
         res.status(500).json({ message: 'Error resetting password', error: error.message });
@@ -99,10 +85,7 @@ const deleteUser = async (req, res) => {
     try {
         const { id } = req.params;
         const user = await User.findById(id);
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
+        if (!user) return res.status(404).json({ message: 'User not found' });
 
         // Prevent deletion of the only admin
         const adminCount = await User.countDocuments({ role: 'admin' });
@@ -118,4 +101,11 @@ const deleteUser = async (req, res) => {
     }
 };
 
-module.exports = { getUserProfile, updateUserProfile, changePassword, getAllUsers, resetUserPassword, deleteUser };
+module.exports = { 
+    getUserProfile, 
+    updateUserProfile, 
+    changePassword, 
+    getAllUsers, 
+    resetUserPassword, 
+    deleteUser 
+};
