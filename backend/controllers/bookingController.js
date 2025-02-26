@@ -84,4 +84,54 @@ const getAllBookings = async (req, res) => {
     }
 };
 
-module.exports = { createBooking, getUserBookings, getAllBookings };
+// Update booking status (Admin only)
+const updateBookingStatus = async (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied. Admins only.' });
+        }
+
+        const { bookingId } = req.params;
+        const { status } = req.body;
+
+        if (!['pending', 'confirmed', 'canceled'].includes(status)) {
+            return res.status(400).json({ message: 'Invalid status value' });
+        }
+
+        const booking = await Booking.findById(bookingId);
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+
+        booking.status = status;
+        await booking.save();
+
+        res.status(200).json({ message: 'Booking status updated successfully', booking });
+    } catch (error) {
+        console.error('Error updating booking status:', error.message);
+        res.status(500).json({ message: 'Server error.', error: error.message });
+    }
+};
+
+// Delete a booking (Admin only)
+const deleteBooking = async (req, res) => {
+    try {
+        if (!req.user || req.user.role !== 'admin') {
+            return res.status(403).json({ message: 'Access denied. Admins only.' });
+        }
+
+        const { bookingId } = req.params;
+        const booking = await Booking.findById(bookingId);
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+
+        await booking.deleteOne();
+        res.status(200).json({ message: 'Booking deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting booking:', error.message);
+        res.status(500).json({ message: 'Server error.', error: error.message });
+    }
+};
+
+module.exports = { createBooking, getUserBookings, getAllBookings, updateBookingStatus, deleteBooking };
