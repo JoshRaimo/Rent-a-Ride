@@ -13,6 +13,7 @@ const carRoutes = require('./routes/carRoutes'); // Car CRUD Routes
 const bookingRoutes = require('./routes/bookingRoutes'); // Booking Routes
 const jwtRoutes = require('./routes/jwtRoutes');
 const imageRoutes = require('./routes/imageRoutes');
+const statsRoutes = require('./routes/statsRoutes'); // Stats Routes
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -53,6 +54,7 @@ app.use('/api/cars', carRoutes); // Routes for Car CRUD Operations
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/jwt', jwtRoutes);
 app.use('/api/images', imageRoutes);
+app.use('/api/stats', statsRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
