@@ -30,7 +30,8 @@ const BookingManagement = () => {
 
     const updateBookingStatus = async (bookingId, status) => {
         try {
-            await axios.put(`${process.env.REACT_APP_API_URL}/bookings/${bookingId}/status`, 
+            await axios.put(
+                `${process.env.REACT_APP_API_URL}/bookings/${bookingId}/status`,
                 { status },
                 {
                     headers: {
@@ -64,6 +65,22 @@ const BookingManagement = () => {
     const filteredBookings = bookings.filter((booking) =>
         filter === 'all' ? true : booking.status === filter
     );
+
+    // Format date and time in Eastern Standard Time (EST)
+    const formatDateTime = (dateString) => {
+        const date = new Date(dateString);
+        // Convert to EST using Intl.DateTimeFormat for more control
+        const options = {
+            timeZone: 'America/New_York',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+        };
+        return new Intl.DateTimeFormat('en-US', options).format(date);
+    };
 
     return (
         <div className="flex">
@@ -99,8 +116,8 @@ const BookingManagement = () => {
                             <tr className="bg-gray-100">
                                 <th className="py-2 px-4 border">User</th>
                                 <th className="py-2 px-4 border">Car</th>
-                                <th className="py-2 px-4 border">Start Date</th>
-                                <th className="py-2 px-4 border">End Date</th>
+                                <th className="py-2 px-4 border">Start Date & Time</th>
+                                <th className="py-2 px-4 border">End Date & Time</th>
                                 <th className="py-2 px-4 border">Total Price</th>
                                 <th className="py-2 px-4 border">Status</th>
                                 <th className="py-2 px-4 border">Actions</th>
@@ -111,9 +128,11 @@ const BookingManagement = () => {
                                 filteredBookings.map((booking) => (
                                     <tr key={booking._id} className="text-center">
                                         <td className="py-2 px-4 border">{booking.user?.name || 'N/A'}</td>
-                                        <td className="py-2 px-4 border">{booking.car?.make} {booking.car?.model}</td>
-                                        <td className="py-2 px-4 border">{new Date(booking.startDate).toLocaleDateString()}</td>
-                                        <td className="py-2 px-4 border">{new Date(booking.endDate).toLocaleDateString()}</td>
+                                        <td className="py-2 px-4 border">
+                                            {booking.car?.make} {booking.car?.model}
+                                        </td>
+                                        <td className="py-2 px-4 border">{formatDateTime(booking.startDate)}</td>
+                                        <td className="py-2 px-4 border">{formatDateTime(booking.endDate)}</td>
                                         <td className="py-2 px-4 border">${booking.totalPrice}</td>
                                         <td className="py-2 px-4 border">{booking.status}</td>
                                         <td className="py-2 px-4 border">

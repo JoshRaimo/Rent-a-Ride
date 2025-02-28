@@ -21,12 +21,18 @@ const BookCar = () => {
         );
     }
 
+    // Convert selected time to 24-hour format for consistency
     const parseTime = (time) => {
         if (!time) return null;
         if (time.toLowerCase() === 'midnight') return '00:00';
         if (time.toLowerCase() === 'noon') return '12:00';
         return time.match(/^\d{1,2}:\d{2} (AM|PM)$/)
-            ? new Date(`1970-01-01 ${time}`).toLocaleTimeString('en-GB', { hour12: false }).slice(0, 5)
+            ? new Date(`1970-01-01 ${time} EST`).toLocaleTimeString('en-US', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: 'America/New_York'
+            })
             : null;
     };
 
@@ -40,8 +46,32 @@ const BookCar = () => {
                 return;
             }
 
-            const startDateTime = new Date(`${startDate}T${formattedStartTime}:00Z`);
-            const endDateTime = new Date(`${endDate}T${formattedEndTime}:00Z`);
+            // Ensure booking time is stored in EST (America/New_York)
+            const startDateTime = new Date(`${startDate}T${formattedStartTime}:00`);
+            const endDateTime = new Date(`${endDate}T${formattedEndTime}:00`);
+
+            // Convert to EST before sending to the backend
+            const startEST = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/New_York',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+            }).format(startDateTime);
+
+            const endEST = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/New_York',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+            }).format(endDateTime);
 
             if (isNaN(startDateTime) || isNaN(endDateTime)) {
                 alert('Invalid date or time selection. Please check your inputs.');
@@ -50,8 +80,8 @@ const BookCar = () => {
 
             const response = await axios.post(`${process.env.REACT_APP_API_URL}/bookings`, {
                 carId,
-                startDate: startDateTime.toISOString(),
-                endDate: endDateTime.toISOString(),
+                startDate: startEST,
+                endDate: endEST,
             }, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
