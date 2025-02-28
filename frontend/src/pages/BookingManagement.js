@@ -127,7 +127,11 @@ const BookingManagement = () => {
                             {filteredBookings.length > 0 ? (
                                 filteredBookings.map((booking) => (
                                     <tr key={booking._id} className="text-center">
-                                        <td className="py-2 px-4 border">{booking.user?.name || 'N/A'}</td>
+                                        <td className="py-2 px-4 border">
+                                            {booking.user?.username
+                                                ? `${booking.user.username} (${booking.user.email})`
+                                                : 'Unknown User'}
+                                        </td>
                                         <td className="py-2 px-4 border">
                                             {booking.car?.make} {booking.car?.model}
                                         </td>

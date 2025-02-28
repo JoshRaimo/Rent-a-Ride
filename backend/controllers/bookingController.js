@@ -1,10 +1,15 @@
 const Booking = require('../models/Booking');
 const Car = require('../models/Car');
+const User = require('../models/User'); // Ensure User model is imported
 
 // Create a booking
 const createBooking = async (req, res) => {
     try {
         const { carId, startDate, endDate } = req.body;
+
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'Unauthorized. Please log in again.' });
+        }
 
         // Validate request data
         if (!carId || !startDate || !endDate) {
@@ -21,9 +26,7 @@ const createBooking = async (req, res) => {
         // **Updated Conflict Check**
         const conflictingBooking = await Booking.findOne({
             car: carId,
-            $or: [
-                { startDate: { $lte: end }, endDate: { $gte: start } }, // Overlapping booking
-            ],
+            $or: [{ startDate: { $lte: end }, endDate: { $gte: start } }],
         });
 
         if (conflictingBooking) {
@@ -42,12 +45,12 @@ const createBooking = async (req, res) => {
 
         // Create a new booking
         const booking = new Booking({
-            user: req.user.id,
+            user: req.user.id, // Ensure user ID is stored
             car: carId,
             startDate,
             endDate,
             totalPrice,
-            status: 'pending'
+            status: 'pending',
         });
 
         await booking.save();
@@ -61,6 +64,10 @@ const createBooking = async (req, res) => {
 // Get user bookings
 const getUserBookings = async (req, res) => {
     try {
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'Unauthorized. Please log in again.' });
+        }
+
         const bookings = await Booking.find({ user: req.user.id }).populate('car');
         res.status(200).json(bookings);
     } catch (error) {
@@ -76,7 +83,12 @@ const getAllBookings = async (req, res) => {
             return res.status(403).json({ message: 'Access denied. Admins only.' });
         }
 
-        const bookings = await Booking.find().populate('user car');
+        // Populate the user field with username, name, and email
+        const bookings = await Booking.find().populate({
+            path: 'user',
+            select: 'username name email' // Ensure we retrieve username, name, and email
+        }).populate('car');
+
         res.status(200).json(bookings);
     } catch (error) {
         console.error('Error fetching all bookings:', error.message);
