@@ -19,6 +19,7 @@ const CarManagement = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [editCarId, setEditCarId] = useState(null);
     const [carId, setCarId] = useState('');
+    const [search, setSearch] = useState('');
 
     const makeOptions = makes;
     const modelOptions = models.map(model => ({ value: model, label: model }));
@@ -277,8 +278,19 @@ const CarManagement = () => {
 
                 {/* Car Listings */}
                 <h3 className="text-xl font-bold text-center text-primary-color mt-8">Car Listings</h3>
+                <input 
+                    type="text" 
+                    placeholder="Search cars..." 
+                    className="border p-2 rounded w-full mb-4" 
+                    value={search} 
+                    onChange={(e) => setSearch(e.target.value)}
+                />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
-                    {cars.map((car) => (
+                    {cars.filter(car => 
+                        car.make.toLowerCase().includes(search.toLowerCase()) || 
+                        car.model.toLowerCase().includes(search.toLowerCase()) ||
+                        car.year.toString().includes(search)
+                    ).map((car) => (
                         <CarListing
                             key={car.carId}
                             car={car}
