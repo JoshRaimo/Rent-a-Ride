@@ -3,15 +3,32 @@ import { useNavigate } from 'react-router-dom';
 
 const HomePage = () => {
     const navigate = useNavigate();
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [startTime, setStartTime] = useState('Midnight');
-    const [endTime, setEndTime] = useState('Midnight');
 
     // Get current date and time
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const todayFormatted = today.toISOString().split("T")[0];
+
+    // Get tomorrow's date
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+    const tomorrowFormatted = tomorrow.toISOString().split("T")[0];
+
+    const getNextHalfHour = () => {
+        const nextHalfHour = new Date();
+        nextHalfHour.setMinutes(Math.ceil(now.getMinutes() / 30) * 30, 0, 0);
+        let label = nextHalfHour.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+
+        if (label === '12:00 AM') label = 'Midnight';
+        if (label === '12:00 PM') label = 'Noon';
+
+        return label;
+    };
+
+    const [startDate, setStartDate] = useState(todayFormatted);
+    const [endDate, setEndDate] = useState(tomorrowFormatted);
+    const [startTime, setStartTime] = useState(getNextHalfHour());
+    const [endTime, setEndTime] = useState('Midnight');
 
     // Generate time options in 30-minute intervals with Noon and Midnight labels
     const generateTimeOptions = () => {
