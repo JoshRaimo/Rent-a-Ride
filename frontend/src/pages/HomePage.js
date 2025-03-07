@@ -16,7 +16,9 @@ const HomePage = () => {
 
     const getNextHalfHour = () => {
         const nextHalfHour = new Date();
-        nextHalfHour.setMinutes(Math.ceil(now.getMinutes() / 30) * 30, 0, 0);
+        const currentMinutes = now.getMinutes();
+        const additionalMinutes = currentMinutes % 30 === 0 ? 30 : 0;
+        nextHalfHour.setMinutes(Math.ceil(currentMinutes / 30) * 30 + additionalMinutes, 0, 0);
         let label = nextHalfHour.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
 
         if (label === '12:00 AM') label = 'Midnight';
