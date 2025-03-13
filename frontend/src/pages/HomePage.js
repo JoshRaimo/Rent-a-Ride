@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import CarListing from '../components/CarListing';
 
 const HomePage = () => {
     const navigate = useNavigate();
@@ -31,6 +33,30 @@ const HomePage = () => {
     const [endDate, setEndDate] = useState(tomorrowFormatted);
     const [startTime, setStartTime] = useState(getNextHalfHour());
     const [endTime, setEndTime] = useState('Midnight');
+
+    const [featuredCars, setFeaturedCars] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchFeaturedCars = async () => {
+            setLoading(true);
+            try {
+                const response = await axios.get(`${process.env.REACT_APP_API_URL}/cars/available`, {
+                    params: {
+                        startDate: todayFormatted,
+                        endDate: tomorrowFormatted,
+                    },
+                });
+                setFeaturedCars(response.data.slice(0, 3)); // Get the first three cars
+            } catch (err) {
+                console.error('Error fetching featured cars:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchFeaturedCars();
+    }, [todayFormatted, tomorrowFormatted]);
 
     // Generate time options in 30-minute intervals with Noon and Midnight labels
     const generateTimeOptions = () => {
@@ -143,24 +169,21 @@ const HomePage = () => {
                 <h2 className="text-3xl font-bold text-center text-primary-color mb-8">
                     Featured Cars
                 </h2>
-                <div className="featured-cars grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto px-4">
-                    {[1, 2, 3].map((car, idx) => (
-                        <div key={idx} className="card">
-                            <div className="card-img">
-                                <span>Car Image</span>
-                            </div>
-                            <div className="card-body">
-                                <h3 className="card-title">
-                                    Car Model {car}
-                                </h3>
-                                <p className="card-text">${50 + car * 15}/day</p>
-                                <button className="btn-primary mt-4">
-                                    View Details
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                {loading ? (
+                    <p className="text-center">Loading...</p>
+                ) : (
+                    <div className="featured-cars grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto px-4">
+                        {featuredCars.map((car, idx) => (
+                            <CarListing
+                                key={idx}
+                                car={car}
+                                showEditDeleteButtons={false}
+                                onBookNow={null}
+                                onLogin={null}
+                            />
+                        ))}
+                    </div>
+                )}
             </section>
 
             {/* How It Works Section */}
