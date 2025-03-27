@@ -100,27 +100,66 @@ const BookCar = () => {
     };
 
     return (
-        <div className="container mx-auto mt-10 p-6 bg-white rounded-lg shadow-lg">
-            <h2 className="text-3xl font-bold text-center text-primary-color mb-6">
+        <div className="container mx-auto mt-10 p-6 max-w-4xl">
+            <h2 className="hero-title mb-8">
                 Confirm Your Booking
             </h2>
 
-            {/* Display Car Details */}
-            <div className="flex justify-center items-center">
-                <div className="border p-4 rounded-lg shadow-lg w-full max-w-md bg-gray-100">
-                    <img src={car.image} alt={car.make} className="w-full h-48 object-cover rounded-md" />
-                    <h3 className="text-xl font-semibold text-center mt-2">{car.make} {car.model} ({car.year})</h3>
-                    <p className="text-center text-gray-600">${car.pricePerDay} per day</p>
+            <div className="grid md:grid-cols-2 gap-8">
+                {/* Car Details Card - Matching AvailableCars layout */}
+                <div className="car-listing">
+                    <h2>{car.make} {car.model} {car.year}</h2>
+                    <img 
+                        src={car.image} 
+                        alt={`${car.make} ${car.model}`}
+                        className="w-full h-auto object-cover rounded-lg"
+                    />
+                    <div className="mt-4">
+                        <p className="car-price text-center">
+                            ${car.pricePerDay} <span className="text-gray-600">per day</span>
+                        </p>
+                    </div>
                 </div>
-            </div>
 
-            <div className="flex justify-center mt-6">
-                <button
-                    className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 transition"
-                    onClick={handleConfirmBooking}
-                >
-                    Confirm Booking
-                </button>
+                {/* Booking Details Card */}
+                <div className="car-listing">
+                    <h2>Booking Details</h2>
+                    <div className="space-y-4 mt-4">
+                        <div>
+                            <p className="text-gray-600">Pick-up</p>
+                            <p className="font-semibold">
+                                {new Date(`${startDate}T12:00:00`).toLocaleDateString('en-US', { 
+                                    weekday: 'long',
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                })}
+                            </p>
+                            <p className="text-primary-color">{startTime}</p>
+                        </div>
+                        <div className="mt-4">
+                            <p className="text-gray-600">Drop-off</p>
+                            <p className="font-semibold">
+                                {new Date(`${endDate}T12:00:00`).toLocaleDateString('en-US', { 
+                                    weekday: 'long',
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                })}
+                            </p>
+                            <p className="text-primary-color">{endTime}</p>
+                        </div>
+                        
+                        <div className="button-group">
+                            <button
+                                className="confirm-button w-full"
+                                onClick={handleConfirmBooking}
+                            >
+                                Confirm Booking
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
