@@ -82,30 +82,19 @@ const MainApp = () => {
     };
 
     return (
-        <div className="min-h-screen bg-secondary-color flex flex-col">
+        <div className="min-h-screen bg-secondary-color flex flex-col" style={{
+            "--navbar-height": "5rem" // 80px
+        }}>
             {/* Navbar */}
-            <header className="navbar shadow-md bg-white">
-                <div className="container mx-auto flex justify-between items-center px-6 py-4">
+            <header className="navbar shadow-md bg-white z-40 fixed top-0 left-0 w-full" style={{ height: "var(--navbar-height)" }}>
+                <div className="container mx-auto flex justify-between items-center px-6 h-full">
                     {/* Logo */}
                     <Link to="/" className="flex items-center space-x-2">
-                        <img src="/rentaridelogo.png" alt="Rent-a-Ride Logo" className="h-12 w-auto" />
+                        <img src="/rentaridelogo.png" alt="Rent-a-Ride Logo" className="h-12 w-auto transition-transform duration-300 hover:scale-110" />
                     </Link>
 
-                    {/* Navigation Links */}
-                    <nav className="flex-1 flex justify-center">
-                        <ul className="flex space-x-6">
-                            <li>
-                                <Link to="/" className="hover:text-blue-500 text-primary-color">
-                                    Home
-                                </Link>
-                            </li>
-                            <li>
-                                <Link to="/available-cars" className="hover:text-blue-500 text-primary-color">
-                                    Rent a Car
-                                </Link>
-                            </li>
-                        </ul>
-                    </nav>
+                    {/* Spacer to balance layout */}
+                    <div className="flex-1" />
 
                     {/* Authentication/Profile Links */}
                     <div className="flex space-x-4 items-center">
@@ -148,7 +137,7 @@ const MainApp = () => {
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 container mx-auto px-4 py-6">
+            <main className="flex-1 container mx-auto px-4 pt-20 pb-6">
                 <Routes>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />

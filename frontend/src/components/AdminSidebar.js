@@ -5,7 +5,10 @@ import { faHome, faUsers, faCar, faClipboardList } from '@fortawesome/free-solid
 
 const AdminSidebar = () => {
     return (
-        <div className="admin-sidebar">
+        <div className="admin-sidebar fixed left-0 bg-white shadow-md z-30 w-16" style={{
+            top: "var(--navbar-height)",
+            height: "calc(100vh - var(--navbar-height))"
+        }}>
             <nav className="flex flex-col items-center space-y-4 p-4">
                 <NavLink
                     to="/admin-dashboard"
