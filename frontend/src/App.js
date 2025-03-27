@@ -24,6 +24,8 @@ import {
     logout,
 } from './utils/auth';
 
+import { LogOut } from 'lucide-react'; // Import logout icon
+
 const App = () => {
     return (
         <Router>
@@ -85,9 +87,9 @@ const MainApp = () => {
             <header className="navbar shadow-md bg-white">
                 <div className="container mx-auto flex justify-between items-center px-6 py-4">
                     {/* Logo */}
-                    <h1 className="text-2xl font-bold text-primary-color">
-                        <Link to="/">Rent-a-Ride</Link>
-                    </h1>
+                    <Link to="/" className="flex items-center space-x-2">
+                        <img src="/rentaridelogo.png" alt="Rent-a-Ride Logo" className="h-12 w-auto" />
+                    </Link>
 
                     {/* Navigation Links */}
                     <nav className="flex-1 flex justify-center">
@@ -98,7 +100,7 @@ const MainApp = () => {
                                 </Link>
                             </li>
                             <li>
-                                <Link to="available-cars" className="hover:text-blue-500 text-pimary-color">
+                                <Link to="/available-cars" className="hover:text-blue-500 text-primary-color">
                                     Rent a Car
                                 </Link>
                             </li>
@@ -126,18 +128,18 @@ const MainApp = () => {
                                         Admin Dashboard
                                     </Link>
                                 )}
-                                <Link
+                                                                <Link
                                     to="/profile"
                                     className="hover:text-blue-500 text-primary-color text-sm"
                                 >
-                                    Profile
+                                    {user?.username || 'User'}
                                 </Link>
-                                <span className="text-text-color text-sm">{user?.username || 'User'}</span>
                                 <button
                                     onClick={handleLogout}
                                     className="hover:text-red-500 text-primary-color text-sm"
+                                    title="Logout"
                                 >
-                                    Logout
+                                    <LogOut className="w-5 h-5" />
                                 </button>
                             </>
                         )}
