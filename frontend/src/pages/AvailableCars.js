@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import CarListing from '../components/CarListing';
+import { Range } from 'react-range';
 
 const AvailableCars = () => {
     const location = useLocation();
@@ -18,12 +19,15 @@ const AvailableCars = () => {
         startTime: location.state?.startTime || '',
         endDate: location.state?.endDate || '',
         endTime: location.state?.endTime || '',
-        priceMin: '',
-        priceMax: '',
-        year: '',
+        priceRange: [0, 1000],
+        yearRange: [1990, new Date().getFullYear()],
         make: '',
         model: '',
     });
+
+    const currentYear = new Date().getFullYear();
+    const minYear = 1990; // Adjust this based on your needs
+    const maxPrice = 1000; // Adjust this based on your maximum price
 
     useEffect(() => {
         const checkAuth = () => {
@@ -59,35 +63,18 @@ const AvailableCars = () => {
         setError(null);
 
         try {
-            // Clean and prepare the filters
             const cleanedFilters = {
                 startDate: filters.startDate,
                 endDate: filters.endDate,
                 startTime: filters.startTime,
                 endTime: filters.endTime,
+                priceMin: filters.priceRange[0],
+                priceMax: filters.priceRange[1],
+                yearMin: filters.yearRange[0],
+                yearMax: filters.yearRange[1],
+                make: filters.make?.trim() || undefined,
+                model: filters.model?.trim() || undefined,
             };
-
-            // Only add numeric filters if they have valid values
-            if (filters.priceMin && !isNaN(filters.priceMin)) {
-                cleanedFilters.priceMin = Number(filters.priceMin);
-            }
-            
-            if (filters.priceMax && !isNaN(filters.priceMax)) {
-                cleanedFilters.priceMax = Number(filters.priceMax);
-            }
-            
-            if (filters.year && !isNaN(filters.year)) {
-                cleanedFilters.year = Number(filters.year);
-            }
-
-            // Only add text filters if they're not empty strings
-            if (filters.make?.trim()) {
-                cleanedFilters.make = filters.make.trim();
-            }
-            
-            if (filters.model?.trim()) {
-                cleanedFilters.model = filters.model.trim();
-            }
 
             const response = await axios.get(`${process.env.REACT_APP_API_URL}/cars/available`, {
                 params: cleanedFilters
@@ -158,15 +145,21 @@ const AvailableCars = () => {
         return options;
     };
 
+    const handleRangeChange = (field, values) => {
+        setFilters(prev => ({
+            ...prev,
+            [field]: values
+        }));
+    };
+
     const handleFilterReset = () => {
         setFilters(prev => ({
             startDate: prev.startDate,
             startTime: prev.startTime,
             endDate: prev.endDate,
             endTime: prev.endTime,
-            priceMin: '',
-            priceMax: '',
-            year: '',
+            priceRange: [0, maxPrice],
+            yearRange: [minYear, currentYear],
             make: '',
             model: '',
         }));
@@ -228,36 +221,97 @@ const AvailableCars = () => {
                     </div>
 
                     {/* Price Range */}
-                    <div className="mb-4">
-                        <h4 className="font-medium mb-2">Price Range</h4>
-                        <div className="flex gap-2">
-                            <input
-                                type="number"
-                                placeholder="Min"
-                                className="w-1/2 px-3 py-2 border border-gray-300 rounded-md"
-                                value={filters.priceMin}
-                                onChange={(e) => handleInputChange('priceMin', e.target.value)}
-                            />
-                            <input
-                                type="number"
-                                placeholder="Max"
-                                className="w-1/2 px-3 py-2 border border-gray-300 rounded-md"
-                                value={filters.priceMax}
-                                onChange={(e) => handleInputChange('priceMax', e.target.value)}
+                    <div className="mb-6">
+                        <h4 className="font-medium mb-2">Price Range ($ per day)</h4>
+                        <div className="px-2 py-4">
+                            <div className="flex justify-between mb-2">
+                                <span className="text-sm text-gray-600">${filters.priceRange[0]}</span>
+                                <span className="text-sm text-gray-600">${filters.priceRange[1]}</span>
+                            </div>
+                            <Range
+                                step={10}
+                                min={0}
+                                max={maxPrice}
+                                values={filters.priceRange}
+                                onChange={(values) => handleRangeChange('priceRange', values)}
+                                renderTrack={({ props, children }) => (
+                                    <div
+                                        {...props}
+                                        className="h-1 w-full bg-gray-200 rounded-full"
+                                        style={{
+                                            ...props.style,
+                                        }}
+                                    >
+                                        <div
+                                            className="h-full bg-primary-color rounded-full"
+                                            style={{
+                                                width: `${(filters.priceRange[1] - filters.priceRange[0]) / maxPrice * 100}%`,
+                                                left: `${filters.priceRange[0] / maxPrice * 100}%`,
+                                                position: 'absolute',
+                                            }}
+                                        />
+                                        {children}
+                                    </div>
+                                )}
+                                renderThumb={({ props }) => (
+                                    <div
+                                        {...props}
+                                        className="h-4 w-4 rounded-full bg-white border-2 border-primary-color focus:outline-none"
+                                        style={{
+                                            ...props.style,
+                                            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                                        }}
+                                    />
+                                )}
                             />
                         </div>
                     </div>
 
-                    {/* Year */}
-                    <div className="mb-4">
-                        <h4 className="font-medium mb-2">Year</h4>
-                        <input
-                            type="number"
-                            placeholder="Year"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                            value={filters.year}
-                            onChange={(e) => handleInputChange('year', e.target.value)}
-                        />
+                    {/* Year Range */}
+                    <div className="mb-6">
+                        <h4 className="font-medium mb-2">Year Range</h4>
+                        <div className="px-2 py-4">
+                            <div className="flex justify-between mb-2">
+                                <span className="text-sm text-gray-600">{filters.yearRange[0]}</span>
+                                <span className="text-sm text-gray-600">{filters.yearRange[1]}</span>
+                            </div>
+                            <Range
+                                step={1}
+                                min={minYear}
+                                max={currentYear}
+                                values={filters.yearRange}
+                                onChange={(values) => handleRangeChange('yearRange', values)}
+                                renderTrack={({ props, children }) => (
+                                    <div
+                                        {...props}
+                                        className="h-1 w-full bg-gray-200 rounded-full"
+                                        style={{
+                                            ...props.style,
+                                        }}
+                                    >
+                                        <div
+                                            className="h-full bg-primary-color rounded-full"
+                                            style={{
+                                                width: `${(filters.yearRange[1] - filters.yearRange[0]) / (currentYear - minYear) * 100}%`,
+                                                left: `${(filters.yearRange[0] - minYear) / (currentYear - minYear) * 100}%`,
+                                                position: 'absolute',
+                                            }}
+                                        />
+                                        {children}
+                                    </div>
+                                )}
+                                renderThumb={({ props }) => (
+                                    <div
+                                        {...props}
+                                        className="h-4 w-4 rounded-full bg-white border-2 border-primary-color focus:outline-none"
+                                        style={{
+                                            ...props.style,
+                                            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                                        }}
+                                    />
+                                )}
+                            />
+                        </div>
                     </div>
 
                     {/* Make and Model */}

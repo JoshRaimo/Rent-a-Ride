@@ -48,11 +48,12 @@ const getAvailableCars = async (req, res) => {
     try {
         const { 
             startDate, 
-            endDate, 
-            priceMin, 
-            priceMax, 
-            year, 
-            make, 
+            endDate,
+            priceMin,
+            priceMax,
+            yearMin,
+            yearMax,
+            make,
             model 
         } = req.query;
 
@@ -77,24 +78,30 @@ const getAvailableCars = async (req, res) => {
         // Build the filter object
         let filter = { _id: { $nin: bookedCarIds } };
 
-        // Add additional filters if they exist
+        // Add price range filter
         if (priceMin || priceMax) {
             filter.pricePerDay = {};
             if (priceMin) filter.pricePerDay.$gte = Number(priceMin);
             if (priceMax) filter.pricePerDay.$lte = Number(priceMax);
         }
 
-        if (year) {
-            filter.year = Number(year);
+        // Add year range filter
+        if (yearMin || yearMax) {
+            filter.year = {};
+            if (yearMin) filter.year.$gte = Number(yearMin);
+            if (yearMax) filter.year.$lte = Number(yearMax);
         }
 
+        // Add make and model filters
         if (make) {
-            filter.make = { $regex: make, $options: 'i' }; // Case-insensitive search
+            filter.make = { $regex: make, $options: 'i' };
+        }
+        if (model) {
+            filter.model = { $regex: model, $options: 'i' };
         }
 
-        if (model) {
-            filter.model = { $regex: model, $options: 'i' }; // Case-insensitive search
-        }
+        // Log the filter for debugging
+        console.log('Filter:', filter);
 
         // Fetch available cars with all filters applied
         const availableCars = await Car.find(filter);
