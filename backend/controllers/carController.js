@@ -46,7 +46,15 @@ const getAllCars = async (req, res) => {
 // Get available cars based on date range
 const getAvailableCars = async (req, res) => {
     try {
-        const { startDate, endDate } = req.query;
+        const { 
+            startDate, 
+            endDate, 
+            priceMin, 
+            priceMax, 
+            year, 
+            make, 
+            model 
+        } = req.query;
 
         if (!startDate || !endDate) {
             return res.status(400).json({ error: 'Start date and end date are required' });
@@ -66,8 +74,30 @@ const getAvailableCars = async (req, res) => {
             ],
         }).distinct('car');
 
-        // Fetch only available cars (not in bookedCarIds)
-        const availableCars = await Car.find({ _id: { $nin: bookedCarIds } });
+        // Build the filter object
+        let filter = { _id: { $nin: bookedCarIds } };
+
+        // Add additional filters if they exist
+        if (priceMin || priceMax) {
+            filter.pricePerDay = {};
+            if (priceMin) filter.pricePerDay.$gte = Number(priceMin);
+            if (priceMax) filter.pricePerDay.$lte = Number(priceMax);
+        }
+
+        if (year) {
+            filter.year = Number(year);
+        }
+
+        if (make) {
+            filter.make = { $regex: make, $options: 'i' }; // Case-insensitive search
+        }
+
+        if (model) {
+            filter.model = { $regex: model, $options: 'i' }; // Case-insensitive search
+        }
+
+        // Fetch available cars with all filters applied
+        const availableCars = await Car.find(filter);
 
         res.status(200).json(availableCars);
     } catch (err) {
