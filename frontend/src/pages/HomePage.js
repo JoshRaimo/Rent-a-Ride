@@ -2,27 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import CarListing from '../components/CarListing';
+import { formatInTimeZone, toDate } from 'date-fns-tz'
 
 const HomePage = () => {
     const navigate = useNavigate();
+    const EST_TIMEZONE = 'America/New_York';
 
-    // Get current date and time
+    // Get current date and time in EST
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayFormatted = today.toISOString().split("T")[0];
+    const estNow = toDate(now, { timeZone: EST_TIMEZONE });
+    const today = new Date(estNow.getFullYear(), estNow.getMonth(), estNow.getDate());
+    const todayFormatted = formatInTimeZone(today, EST_TIMEZONE, 'yyyy-MM-dd');
 
-    // Get tomorrow's date
-    const tomorrow = new Date();
+    // Get tomorrow's date in EST
+    const tomorrow = toDate(new Date(today), { timeZone: EST_TIMEZONE });
     tomorrow.setDate(today.getDate() + 1);
-    const tomorrowFormatted = tomorrow.toISOString().split("T")[0];
+    const tomorrowFormatted = formatInTimeZone(tomorrow, EST_TIMEZONE, 'yyyy-MM-dd');
 
     const getNextHalfHour = () => {
-        const nextHalfHour = new Date();
-        const currentMinutes = now.getMinutes();
+        const nextHalfHour = toDate(new Date(), { timeZone: EST_TIMEZONE });
+        const currentMinutes = estNow.getMinutes();
         const additionalMinutes = currentMinutes % 30 === 0 ? 30 : 0;
         nextHalfHour.setMinutes(Math.ceil(currentMinutes / 30) * 30 + additionalMinutes, 0, 0);
 
-        let label = nextHalfHour.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+        let label = formatInTimeZone(nextHalfHour, EST_TIMEZONE, 'h:mm aa');
         if (label === '12:00 AM') label = 'Midnight';
         if (label === '12:00 PM') label = 'Noon';
 
@@ -119,10 +122,17 @@ const HomePage = () => {
             return time;
         };
 
-        const selectedStartDateTime = new Date(`${startDate} ${parseTime(startTime)}`);
-        const selectedEndDateTime = new Date(`${endDate} ${parseTime(endTime)}`);
+        const selectedStartDateTime = toDate(
+            new Date(`${startDate} ${parseTime(startTime)}`),
+            { timeZone: EST_TIMEZONE }
+        );
+        const selectedEndDateTime = toDate(
+            new Date(`${endDate} ${parseTime(endTime)}`),
+            { timeZone: EST_TIMEZONE }
+        );
+        const estNow = toDate(new Date(), { timeZone: EST_TIMEZONE });
 
-        if (selectedStartDateTime <= now) {
+        if (selectedStartDateTime <= estNow) {
             alert('Start date and time must be in the future.');
             return;
         }

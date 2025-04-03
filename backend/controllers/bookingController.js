@@ -1,11 +1,14 @@
 const Booking = require('../models/Booking');
 const Car = require('../models/Car');
 const User = require('../models/User'); // Ensure User model is imported
+const { formatInTimeZone, toDate } = require('date-fns-tz');
+const { parseISO, isValid } = require('date-fns');
 
 // Create a booking
 const createBooking = async (req, res) => {
     try {
         const { carId, startDate, endDate } = req.body;
+        const EST_TIMEZONE = 'America/New_York';
 
         if (!req.user || !req.user.id) {
             return res.status(401).json({ message: 'Unauthorized. Please log in again.' });
@@ -16,47 +19,61 @@ const createBooking = async (req, res) => {
             return res.status(400).json({ error: 'Car ID, start date, and end date are required' });
         }
 
-        // Validate date range
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        if (isNaN(start) || isNaN(end) || start >= end) {
-            return res.status(400).json({ message: 'Invalid date range. Start date must be before end date.' });
+        // Parse the dates
+        const start = parseISO(startDate);
+        const end = parseISO(endDate);
+        const now = new Date();
+
+        // Validate dates
+        if (!isValid(start) || !isValid(end)) {
+            return res.status(400).json({ message: 'Invalid date format provided.' });
         }
 
-        // **Updated Conflict Check**
+        if (start >= end) {
+            return res.status(400).json({ message: 'Start date must be before end date.' });
+        }
+
+        if (start <= now) {
+            return res.status(400).json({ message: 'Start time must be in the future.' });
+        }
+
+        // Check for conflicting bookings
         const conflictingBooking = await Booking.findOne({
             car: carId,
-            $or: [{ startDate: { $lte: end }, endDate: { $gte: start } }],
+            $or: [
+                { startDate: { $lte: end }, endDate: { $gte: start } }
+            ]
         });
 
         if (conflictingBooking) {
             return res.status(400).json({ message: 'Car is not available for the selected dates.' });
         }
 
-        // Fetch car details
+        // Calculate total price
         const car = await Car.findById(carId);
-        if (!car || !car.pricePerDay) {
-            return res.status(404).json({ message: 'Car not found or price per day is not defined.' });
+        if (!car) {
+            return res.status(404).json({ message: 'Car not found.' });
         }
 
-        // Calculate total price
+        // Calculate number of days (rounded up)
         const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
         const totalPrice = days * car.pricePerDay;
 
-        // Create a new booking
+        // Create the booking
         const booking = new Booking({
-            user: req.user.id, // Ensure user ID is stored
+            user: req.user.id,
             car: carId,
-            startDate,
-            endDate,
+            startDate: start,
+            endDate: end,
             totalPrice,
-            status: 'pending',
+            status: 'pending'
         });
 
         await booking.save();
         res.status(201).json({ message: 'Booking created successfully', booking });
+
     } catch (error) {
-        console.error('Error creating booking:', error.message);
+        console.error('Error creating booking:', error);
         res.status(500).json({ message: 'Server error.', error: error.message });
     }
 };

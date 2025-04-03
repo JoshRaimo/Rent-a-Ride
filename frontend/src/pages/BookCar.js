@@ -1,10 +1,14 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { parseISO } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { toast } from 'react-toastify';
 
 const BookCar = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const EST_TIMEZONE = 'America/New_York';
     
     const car = location.state?.car || null;
     const carId = car?.carId || car?._id || null;
@@ -21,67 +25,28 @@ const BookCar = () => {
         );
     }
 
-    // Convert selected time to 24-hour format for consistency
-    const parseTime = (time) => {
-        if (!time) return null;
-        if (time.toLowerCase() === 'midnight') return '00:00';
-        if (time.toLowerCase() === 'noon') return '12:00';
-        return time.match(/^\d{1,2}:\d{2} (AM|PM)$/)
-            ? new Date(`1970-01-01 ${time} EST`).toLocaleTimeString('en-US', {
-                hour12: false,
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZone: 'America/New_York'
-            })
-            : null;
-    };
-
     const handleConfirmBooking = async () => {
         try {
             const formattedStartTime = parseTime(startTime);
             const formattedEndTime = parseTime(endTime);
 
             if (!formattedStartTime || !formattedEndTime) {
-                alert('Invalid time format. Please re-select the start and end times.');
+                toast.error('Invalid time format. Please re-select the start and end times.');
                 return;
             }
 
-            // Ensure booking time is stored in EST (America/New_York)
-            const startDateTime = new Date(`${startDate}T${formattedStartTime}:00`);
-            const endDateTime = new Date(`${endDate}T${formattedEndTime}:00`);
+            // Create date strings in ISO format
+            const startDateTime = new Date(`${startDate}T${formattedStartTime}`);
+            const endDateTime = new Date(`${endDate}T${formattedEndTime}`);
 
-            // Convert to EST before sending to the backend
-            const startEST = new Intl.DateTimeFormat('en-US', {
-                timeZone: 'America/New_York',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false,
-            }).format(startDateTime);
-
-            const endEST = new Intl.DateTimeFormat('en-US', {
-                timeZone: 'America/New_York',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false,
-            }).format(endDateTime);
-
-            if (isNaN(startDateTime) || isNaN(endDateTime)) {
-                alert('Invalid date or time selection. Please check your inputs.');
-                return;
-            }
+            // Format dates in EST timezone
+            const startDateEST = formatInTimeZone(startDateTime, EST_TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+            const endDateEST = formatInTimeZone(endDateTime, EST_TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
 
             const response = await axios.post(`${process.env.REACT_APP_API_URL}/bookings`, {
                 carId,
-                startDate: startEST,
-                endDate: endEST,
+                startDate: startDateEST,
+                endDate: endDateEST,
             }, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -89,14 +54,37 @@ const BookCar = () => {
                 },
             });
 
-            if (response.status === 201) {
-                alert('Booking confirmed! Redirecting...');
-                navigate('/');
-            }
+            // Show success message
+            toast.success('Booking confirmed successfully!');
+
+            // Add a small delay before navigation to ensure the toast is visible
+            setTimeout(() => {
+                navigate('/'); // Redirect to homepage
+            }, 1500);
+
         } catch (error) {
-            console.error('Error confirming booking:', error.response?.data || error.message);
-            alert(`Failed to confirm booking: ${error.response?.data?.message || 'Please try again.'}`);
+            console.error('Error confirming booking:', error);
+            toast.error(error.response?.data?.message || 'Failed to confirm booking. Please try again.');
         }
+    };
+
+    const parseTime = (time) => {
+        if (!time) return null;
+        if (time.toLowerCase() === 'midnight') return '00:00';
+        if (time.toLowerCase() === 'noon') return '12:00';
+        
+        // Convert 12-hour format to 24-hour format
+        const [timeStr, period] = time.split(' ');
+        const [hours, minutes] = timeStr.split(':');
+        let hour = parseInt(hours, 10);
+        
+        if (period.toLowerCase() === 'pm' && hour !== 12) {
+            hour += 12;
+        } else if (period.toLowerCase() === 'am' && hour === 12) {
+            hour = 0;
+        }
+        
+        return `${hour.toString().padStart(2, '0')}:${minutes}`;
     };
 
     return (
