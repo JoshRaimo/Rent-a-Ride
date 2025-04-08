@@ -268,32 +268,46 @@ const HomePage = () => {
             </section>
 
             {/* Footer Section */}
-            <footer className="footer bg-footer-bg-color text-white">
-                <div className="grid-cols-footer max-w-7xl mx-auto px-4">
-                    <div>
-                        <h3 className="font-bold mb-2">Rent-a-Ride</h3>
-                        <p>Find your perfect ride for any occasion.</p>
-                    </div>
-                    <div>
-                        <h3 className="font-bold mb-2">Quick Links</h3>
-                        <ul>
-                            <li>Home</li>
-                            <li>Cars</li>
-                            <li>About Us</li>
-                            <li>Contact</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h3 className="font-bold mb-2">Contact Us</h3>
-                        <p>+1 (617) 461-0054</p>
-                        <p>Joshraimo@gmail.com</p>
-                    </div>
-                    <div>
-                        <h3 className="font-bold mb-2">Follow Us</h3>
-                        <p>Social Media Links</p>
+            <footer className="footer bg-footer-bg-color text-white rounded-lg" style={{ width: '99.5%', margin: '0 auto' }}>
+                <div className="max-w-7xl mx-auto px-4 py-8">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                        <div className="text-center">
+                            <h3 className="font-bold mb-4">Rent-a-Ride</h3>
+                            <p>Find your perfect ride for any occasion.</p>
+                        </div>
+                        <div className="text-center">
+                            <h3 className="font-bold mb-4">Contact Us</h3>
+                            <p>+1 (617) 461-0054</p>
+                            <p>Joshraimo@gmail.com</p>
+                        </div>
+                        <div className="text-center">
+                            <h3 className="font-bold mb-4">Follow Us</h3>
+                            <div className="flex justify-center gap-4">
+                                <a 
+                                    href="https://www.instagram.com/josh.raimo/" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-white hover:text-gray-300"
+                                >
+                                    <i className="fab fa-instagram text-4xl"></i>
+                                </a>
+                                <a 
+                                    href="https://www.linkedin.com/in/josh-raimo-31262024b/" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-white hover:text-gray-300"
+                                >
+                                    <i className="fab fa-linkedin text-4xl"></i>
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <p className="mt-4 text-sm">&copy; 2025 Rent-a-Ride. All rights reserved.</p>
+                <div className="border-t border-gray-700 w-full">
+                    <div className="max-w-7xl mx-auto px-4 py-4">
+                        <p className="text-sm text-center">&copy; 2025 Rent-a-Ride. All rights reserved.</p>
+                    </div>
+                </div>
             </footer>
         </div>
     );
