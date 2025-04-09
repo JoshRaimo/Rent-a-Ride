@@ -30,7 +30,17 @@ const App = () => {
     return (
         <Router>
             <MainApp />
-            <ToastContainer position="top-right" autoClose={3000} />
+            <ToastContainer
+                position="top-center"
+                autoClose={3000}
+                hideProgressBar={false}
+                newestOnTop={true}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+            />
         </Router>
     );
 };
