@@ -140,9 +140,7 @@ const updateBookingStatus = async (req, res) => {
 
         // If user is admin, allow all status changes
         // If user is owner, only allow cancellation
-        if (userRole === 'admin') {
-        } else if (isOwner && status === 'canceled') {
-        } else {
+        if (!(userRole === 'admin' || (isOwner && status === 'canceled'))) {
             return res.status(403).json({ 
                 message: userRole === 'admin' 
                     ? 'Admin permission denied.' 

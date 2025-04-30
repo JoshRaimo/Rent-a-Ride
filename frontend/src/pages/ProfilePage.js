@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const ProfilePage = ({ onUpdateUser }) => {
     const [user, setUser] = useState(null);
@@ -14,6 +15,8 @@ const ProfilePage = ({ onUpdateUser }) => {
     const [bookings, setBookings] = useState([]);
     const [loadingBookings, setLoadingBookings] = useState(true);
     const [deletingBookingId, setDeletingBookingId] = useState(null);
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
 
     useEffect(() => {
         const fetchUserProfile = async () => {
@@ -117,10 +120,37 @@ const ProfilePage = ({ onUpdateUser }) => {
     };
 
     const handleDeleteBooking = async (bookingId) => {
-        if (!window.confirm('Are you sure you want to permanently DELETE this booking? This action cannot be undone.')) {
-            return;
-        }
+        toast.info(
+            <div>
+                <p>Are you sure you want to permanently DELETE this booking? This action cannot be undone.</p>
+                <div className="mt-2">
+                    <button
+                        className="bg-red-500 text-white px-4 py-2 rounded mr-2"
+                        onClick={() => {
+                            handleDeleteConfirm(bookingId);
+                            toast.dismiss();
+                        }}
+                    >
+                        Delete
+                    </button>
+                    <button
+                        className="bg-gray-500 text-white px-4 py-2 rounded"
+                        onClick={() => toast.dismiss()}
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>,
+            {
+                autoClose: false,
+                closeOnClick: false,
+                draggable: false,
+                closeButton: false
+            }
+        );
+    };
 
+    const handleDeleteConfirm = async (bookingId) => {
         setDeletingBookingId(bookingId);
         try {
             const token = localStorage.getItem('token');
@@ -193,25 +223,43 @@ const ProfilePage = ({ onUpdateUser }) => {
                         <form onSubmit={handleChangePassword}>
                             <div className="mb-4">
                                 <label className="block mb-1">Current Password</label>
-                                <input
-                                    type="password"
-                                    value={currentPassword}
-                                    onChange={(e) => setCurrentPassword(e.target.value)}
-                                    className="w-full px-3 py-2 border rounded"
-                                    placeholder="Enter current password"
-                                    required
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showCurrentPassword ? "text" : "password"}
+                                        value={currentPassword}
+                                        onChange={(e) => setCurrentPassword(e.target.value)}
+                                        className="w-full px-3 py-2 border rounded pr-10"
+                                        placeholder="Enter current password"
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                    >
+                                        {showCurrentPassword ? <FaEye size={20} /> : <FaEyeSlash size={20} />}
+                                    </button>
+                                </div>
                             </div>
                             <div className="mb-4">
                                 <label className="block mb-1">New Password</label>
-                                <input
-                                    type="password"
-                                    value={newPassword}
-                                    onChange={(e) => setNewPassword(e.target.value)}
-                                    className="w-full px-3 py-2 border rounded"
-                                    placeholder="Enter new password"
-                                    required
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showNewPassword ? "text" : "password"}
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        className="w-full px-3 py-2 border rounded pr-10"
+                                        placeholder="Enter new password"
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                                        onClick={() => setShowNewPassword(!showNewPassword)}
+                                    >
+                                        {showNewPassword ? <FaEye size={20} /> : <FaEyeSlash size={20} />}
+                                    </button>
+                                </div>
                             </div>
                             <button
                                 type="submit"

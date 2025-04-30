@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import CarListing from '../components/CarListing';
 import { formatInTimeZone, toDate } from 'date-fns-tz'
+import { toast } from 'react-toastify';
 
 const HomePage = () => {
     const navigate = useNavigate();
@@ -92,8 +93,11 @@ const HomePage = () => {
     }, [todayFormatted, tomorrowFormatted]);
 
     // Generate time options in 30-minute intervals with Noon and Midnight labels
-    const generateTimeOptions = () => {
+    const generateTimeOptions = (isStartTime = false) => {
         const options = [];
+        const isToday = startDate === todayFormatted;
+        const nextHalfHourInfo = getNextHalfHour();
+
         for (let hour = 0; hour < 24; hour++) {
             for (let minute = 0; minute < 60; minute += 30) {
                 const time = new Date();
@@ -103,18 +107,43 @@ const HomePage = () => {
                 if (label === '12:00 AM') label = 'Midnight';
                 if (label === '12:00 PM') label = 'Noon';
 
-                options.push({ value: label, label });
+                // Only filter times for start time on today's date
+                if (!isStartTime || !isToday || 
+                    (hour > estNow.getHours() || 
+                    (hour === estNow.getHours() && minute >= Math.ceil(estNow.getMinutes() / 30) * 30))) {
+                    options.push({ value: label, label });
+                }
             }
         }
         return options;
     };
 
+    const validateDates = () => {
+        if (!startDate || !endDate || !startTime || !endTime) {
+            toast.error('Please enter valid start and end dates and times.');
+            return false;
+        }
+
+        const startDateTime = new Date(`${startDate}T${startTime}`);
+        const endDateTime = new Date(`${endDate}T${endTime}`);
+        const now = new Date();
+
+        if (startDateTime <= now) {
+            toast.error('Start date and time must be in the future.');
+            return false;
+        }
+
+        if (endDateTime <= startDateTime) {
+            toast.error('End date and time must be after the start time.');
+            return false;
+        }
+
+        return true;
+    };
+
     // Handle Search Button Click
     const handleSearch = () => {
-        if (!startDate || !endDate || !startTime || !endTime) {
-            alert('Please enter valid start and end dates and times.');
-            return;
-        }
+        if (!validateDates()) return;
 
         const parseTime = (time) => {
             if (time.toLowerCase() === 'midnight') return '00:00';
@@ -172,7 +201,7 @@ const HomePage = () => {
                         value={startTime}
                         onChange={(e) => setStartTime(e.target.value)}
                     >
-                        {generateTimeOptions().map((time, index) => (
+                        {generateTimeOptions(true).map((time, index) => (
                             <option key={index} value={time.value}>{time.label}</option>
                         ))}
                     </select>
@@ -192,7 +221,7 @@ const HomePage = () => {
                         value={endTime}
                         onChange={(e) => setEndTime(e.target.value)}
                     >
-                        {generateTimeOptions().map((time, index) => (
+                        {generateTimeOptions(false).map((time, index) => (
                             <option key={index} value={time.value}>{time.label}</option>
                         ))}
                     </select>

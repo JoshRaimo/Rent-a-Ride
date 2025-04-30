@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import AdminSidebar from '../components/AdminSidebar';
+import { toast } from 'react-toastify';
 
 const BookingManagement = () => {
     const [bookings, setBookings] = useState([]);
@@ -40,15 +41,45 @@ const BookingManagement = () => {
                 }
             );
             fetchBookings(); // Refresh bookings list
+            toast.success(`Booking ${status} successfully`);
         } catch (err) {
             console.error('Error updating booking status:', err);
-            alert('Failed to update booking status.');
+            toast.error('Failed to update booking status');
         }
     };
 
     const deleteBooking = async (bookingId) => {
-        if (!window.confirm('Are you sure you want to delete this booking?')) return;
+        toast.info(
+            <div>
+                <p>Are you sure you want to delete this booking?</p>
+                <div className="mt-2">
+                    <button
+                        className="bg-red-500 text-white px-4 py-2 rounded mr-2"
+                        onClick={() => {
+                            handleDeleteConfirm(bookingId);
+                            toast.dismiss();
+                        }}
+                    >
+                        Delete
+                    </button>
+                    <button
+                        className="bg-gray-500 text-white px-4 py-2 rounded"
+                        onClick={() => toast.dismiss()}
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>,
+            {
+                autoClose: false,
+                closeOnClick: false,
+                draggable: false,
+                closeButton: false
+            }
+        );
+    };
 
+    const handleDeleteConfirm = async (bookingId) => {
         try {
             await axios.delete(`${process.env.REACT_APP_API_URL}/bookings/${bookingId}`, {
                 headers: {
@@ -56,9 +87,10 @@ const BookingManagement = () => {
                 },
             });
             fetchBookings(); // Refresh bookings list
+            toast.success('Booking deleted successfully');
         } catch (err) {
             console.error('Error deleting booking:', err);
-            alert('Failed to delete booking.');
+            toast.error('Failed to delete booking');
         }
     };
 

@@ -26,7 +26,7 @@ const bookingSchema = new mongoose.Schema({
     totalPrice: { type: Number, required: true, min: 0 },  // Ensuring price is non-negative
     status: { 
         type: String, 
-        enum: ['pending', 'confirmed', 'cancelled'], 
+        enum: ['pending', 'confirmed', 'canceled'], 
         default: 'pending'
     },
 }, { timestamps: true });

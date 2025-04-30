@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import AdminSidebar from '../components/AdminSidebar';
+import { toast } from 'react-toastify';
 
 const UserManagement = () => {
     const [users, setUsers] = useState([]);
@@ -25,32 +26,67 @@ const UserManagement = () => {
         }
     };
 
-    const handleResetPassword = async (userId) => {
+    const resetPassword = async (userId) => {
         try {
-            await axios.patch(`${process.env.REACT_APP_API_URL}/users/${userId}/reset-password`, {}, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`,
-                },
-            });
-            alert('Password reset successfully to DefaultPass123');
-        } catch (error) {
-            console.error('Error resetting password:', error.response?.data?.message || error.message);
-            alert('Failed to reset password.');
+            const response = await axios.patch(
+                `${process.env.REACT_APP_API_URL}/users/${userId}/reset-password`,
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                }
+            );
+            toast.success(response.data.message);
+        } catch (err) {
+            console.error('Error resetting password:', err);
+            toast.error(err.response?.data?.message || 'Failed to reset password');
         }
     };
 
-    const handleDeleteUser = async (userId) => {
-        if (!window.confirm('Are you sure you want to delete this user?')) return;
+    const deleteUser = async (userId) => {
+        toast.info(
+            <div>
+                <p>Are you sure you want to delete this user?</p>
+                <div className="mt-2">
+                    <button
+                        className="bg-red-500 text-white px-4 py-2 rounded mr-2"
+                        onClick={() => {
+                            handleDeleteConfirm(userId);
+                            toast.dismiss();
+                        }}
+                    >
+                        Delete
+                    </button>
+                    <button
+                        className="bg-gray-500 text-white px-4 py-2 rounded"
+                        onClick={() => toast.dismiss()}
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>,
+            {
+                autoClose: false,
+                closeOnClick: false,
+                draggable: false,
+                closeButton: false
+            }
+        );
+    };
+
+    const handleDeleteConfirm = async (userId) => {
         try {
             await axios.delete(`${process.env.REACT_APP_API_URL}/users/${userId}`, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
                 },
             });
-            setUsers(users.filter(user => user._id !== userId));
-        } catch (error) {
-            console.error('Error deleting user:', error.response?.data?.message || error.message);
-            alert('Failed to delete user.');
+            fetchUsers(); // Refresh users list
+            toast.success('User deleted successfully');
+        } catch (err) {
+            console.error('Error deleting user:', err);
+            toast.error('Failed to delete user');
         }
     };
 
@@ -77,14 +113,14 @@ const UserManagement = () => {
                                 <p>Role: {user.role}</p>
                                 <button 
                                     className="bg-blue-500 text-white p-2 rounded mt-2"
-                                    onClick={() => handleResetPassword(user._id)}
+                                    onClick={() => resetPassword(user._id)}
                                 >
                                     Reset Password
                                 </button>
                                 {user.role !== 'admin' && (
                                     <button 
                                         className="bg-red-500 text-white p-2 rounded mt-2 ml-2"
-                                        onClick={() => handleDeleteUser(user._id)}
+                                        onClick={() => deleteUser(user._id)}
                                     >
                                         Delete User
                                     </button>

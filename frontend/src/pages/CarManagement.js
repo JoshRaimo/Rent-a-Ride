@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Select from 'react-select';
 import AdminSidebar from '../components/AdminSidebar';
 import CarListing from '../components/CarListing';
+import { toast } from 'react-toastify';
 
 const CarManagement = () => {
     const [cars, setCars] = useState([]);
@@ -20,6 +21,8 @@ const CarManagement = () => {
     const [editCarId, setEditCarId] = useState(null);
     const [carId, setCarId] = useState('');
     const [search, setSearch] = useState('');
+    const [fileInputKey, setFileInputKey] = useState(Date.now());
+    const formRef = useRef(null);
 
     const makeOptions = makes;
     const modelOptions = models.map(model => ({ value: model, label: model }));
@@ -124,28 +127,30 @@ const CarManagement = () => {
         const file = e.target.files[0];
         if (!file) return;
 
-        setImage(file);
-
         const formData = new FormData();
         formData.append('image', file);
 
         try {
-            const response = await axios.post(`${process.env.REACT_APP_API_URL}/images/upload`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
+            const response = await axios.post(
+                `${process.env.REACT_APP_API_URL}/images/upload`,
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                }
+            );
             setImageUrl(response.data.imageUrl);
-        } catch (error) {
-            console.error('Error uploading image:', error.message);
-            alert('Failed to upload image. Please try again.');
+        } catch (err) {
+            console.error('Error uploading image:', err);
+            toast.error('Failed to upload image. Please try again.');
         }
     };
 
     // Handle add or update car
     const handleSubmit = async (e) => {
         e.preventDefault();
-    
         try {
             const carData = {
                 make,
@@ -158,9 +163,19 @@ const CarManagement = () => {
     
             let response;
             if (isEditing) {
-                response = await axios.put(`${process.env.REACT_APP_API_URL}/cars/${editCarId}`, carData);
+                response = await axios.put(`${process.env.REACT_APP_API_URL}/cars/${editCarId}`, carData, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                });
+                toast.success('Car updated successfully');
             } else {
-                response = await axios.post(`${process.env.REACT_APP_API_URL}/cars`, carData);
+                response = await axios.post(`${process.env.REACT_APP_API_URL}/cars`, carData, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                    },
+                });
+                toast.success('Car added successfully');
             }
     
             if (response.data.carId) {
@@ -169,20 +184,56 @@ const CarManagement = () => {
     
             resetForm();
             fetchCars();
-        } catch (error) {
-            console.error('Error submitting car data:', error.message);
-            alert('Failed to add/update car.');
+        } catch (err) {
+            console.error('Error adding/updating car:', err);
+            toast.error('Failed to add/update car');
         }
     };
 
     // Handle delete car
     const handleDelete = async (carId) => {
+        toast.info(
+            <div>
+                <p>Are you sure you want to delete this car?</p>
+                <div className="mt-2">
+                    <button
+                        className="bg-red-500 text-white px-4 py-2 rounded mr-2"
+                        onClick={() => {
+                            handleDeleteConfirm(carId);
+                            toast.dismiss();
+                        }}
+                    >
+                        Delete
+                    </button>
+                    <button
+                        className="bg-gray-500 text-white px-4 py-2 rounded"
+                        onClick={() => toast.dismiss()}
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>,
+            {
+                autoClose: false,
+                closeOnClick: false,
+                draggable: false,
+                closeButton: false
+            }
+        );
+    };
+
+    const handleDeleteConfirm = async (carId) => {
         try {
-            await axios.delete(`${process.env.REACT_APP_API_URL}/cars/${carId}`);
+            await axios.delete(`${process.env.REACT_APP_API_URL}/cars/${carId}`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
             fetchCars();
-        } catch (error) {
-            console.error('Error deleting car:', error.message);
-            alert('Failed to delete car.');
+            toast.success('Car deleted successfully');
+        } catch (err) {
+            console.error('Error deleting car:', err);
+            toast.error('Failed to delete car');
         }
     };
 
@@ -195,13 +246,17 @@ const CarManagement = () => {
         setImageUrl(car.image);
         setIsEditing(true);
         setEditCarId(car.carId);
+        
+        // Scroll to form with offset to position "Car Management" at top
+        window.scrollTo({
+            top: formRef.current.offsetTop - 100, // Adjust this value to fine-tune the position
+            behavior: 'smooth'
+        });
     };
 
     const resetForm = () => {
         setMake('');
-        setModels([]);
         setSelectedModel('');
-        setYears([]);
         setSelectedYear('');
         setPrice('');
         setAvailability(true);
@@ -209,6 +264,11 @@ const CarManagement = () => {
         setImageUrl('');
         setIsEditing(false);
         setEditCarId(null);
+        // Clear the models and years arrays since they depend on make/model selection
+        setModels([]);
+        setYears([]);
+        // Reset file input by updating its key
+        setFileInputKey(Date.now());
     };
 
     return (
@@ -218,12 +278,12 @@ const CarManagement = () => {
                 <h2 className="text-3xl font-bold text-center text-primary-color mb-6">Car Management</h2>
 
                 {/* Add Car Form */}
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
                     <div>
                         <label className="block font-bold mb-2">Make</label>
                         <Select
                             options={makes}
-                            value={makes.find(option => option.value === make)}
+                            value={make ? makes.find(option => option.value === make) : null}
                             onChange={(selectedOption) => setMake(selectedOption ? selectedOption.value : '')}
                             isClearable
                             placeholder="Select or type make"
@@ -233,7 +293,7 @@ const CarManagement = () => {
                         <label className="block font-bold mb-2">Model</label>
                         <Select
                             options={modelOptions}
-                            value={modelOptions.find(option => option.value === selectedModel)}
+                            value={selectedModel ? modelOptions.find(option => option.value === selectedModel) : null}
                             onChange={(selectedOption) => setSelectedModel(selectedOption ? selectedOption.value : '')}
                             isClearable
                             placeholder="Select or type model"
@@ -243,7 +303,7 @@ const CarManagement = () => {
                         <label className="block font-bold mb-2">Year</label>
                         <Select
                             options={yearOptions}
-                            value={yearOptions.find(option => option.value === selectedYear)}
+                            value={selectedYear ? yearOptions.find(option => option.value === selectedYear) : null}
                             onChange={(selectedOption) => setSelectedYear(selectedOption ? selectedOption.value : '')}
                             isClearable
                             placeholder="Select or type year"
@@ -262,11 +322,31 @@ const CarManagement = () => {
                     <div>
                         <label className="block font-bold mb-2">Upload Picture</label>
                         <input
+                            key={fileInputKey}
                             type="file"
                             accept="image/*"
                             onChange={handleImageUpload}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md"
                         />
+                        {imageUrl && (
+                            <div className="mt-2">
+                                <img 
+                                    src={imageUrl} 
+                                    alt="Car preview" 
+                                    className="max-w-xs h-auto rounded-md"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setImageUrl('');
+                                        setFileInputKey(Date.now());
+                                    }}
+                                    className="mt-2 px-3 py-1 bg-red-500 text-white rounded-md text-sm"
+                                >
+                                    Remove Image
+                                </button>
+                            </div>
+                        )}
                     </div>
                     <button
                         type="submit"

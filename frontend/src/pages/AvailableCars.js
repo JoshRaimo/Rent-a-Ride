@@ -5,18 +5,43 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import CarListing from '../components/CarListing';
 import { Range } from 'react-range';
+import { formatInTimeZone, toDate } from 'date-fns-tz';
 
 const AvailableCars = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const EST_TIMEZONE = 'America/New_York';
+
+    // Get current date and time in EST
+    const now = new Date();
+    const estNow = toDate(now, { timeZone: EST_TIMEZONE });
+    const today = new Date(estNow.getFullYear(), estNow.getMonth(), estNow.getDate());
+    const todayFormatted = formatInTimeZone(today, EST_TIMEZONE, 'yyyy-MM-dd');
+
+    const getNextHalfHour = () => {
+        const nextHalfHour = toDate(new Date(), { timeZone: EST_TIMEZONE });
+        const currentMinutes = estNow.getMinutes();
+        const additionalMinutes = currentMinutes % 30 === 0 ? 30 : 0;
+        nextHalfHour.setMinutes(Math.ceil(currentMinutes / 30) * 30 + additionalMinutes, 0, 0);
+
+        let label = formatInTimeZone(nextHalfHour, EST_TIMEZONE, 'h:mm aa');
+        if (label === '12:00 AM') label = 'Midnight';
+        if (label === '12:00 PM') label = 'Noon';
+
+        return {
+            time: label,
+            isNextDay: nextHalfHour.getHours() === 0 && nextHalfHour.getMinutes() === 0
+        };
+    };
+
     const [cars, setCars] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     const [filters, setFilters] = useState({
-        startDate: location.state?.startDate || '',
-        startTime: location.state?.startTime || '',
+        startDate: location.state?.startDate || todayFormatted,
+        startTime: location.state?.startTime || getNextHalfHour().time,
         endDate: location.state?.endDate || '',
         endTime: location.state?.endTime || '',
         priceRange: [0, 1000],
@@ -39,9 +64,6 @@ const AvailableCars = () => {
         window.addEventListener('storage', checkAuth);
         return () => window.removeEventListener('storage', checkAuth);
     }, []);
-
-    const today = new Date();
-    const todayFormatted = today.toISOString().split('T')[0];
 
     useEffect(() => {
         if (filters.startDate && filters.endDate) {
@@ -127,9 +149,12 @@ const AvailableCars = () => {
         }));
     };
 
-    // Generate time options in 30-minute intervals with "Midnight" and "Noon" labels
-    const generateTimeOptions = () => {
+    // Generate time options in 30-minute intervals with Noon and Midnight labels
+    const generateTimeOptions = (isStartTime = false) => {
         const options = [];
+        const isToday = filters.startDate === todayFormatted;
+        const nextHalfHourInfo = getNextHalfHour();
+
         for (let hour = 0; hour < 24; hour++) {
             for (let minute = 0; minute < 60; minute += 30) {
                 const time = new Date();
@@ -139,10 +164,20 @@ const AvailableCars = () => {
                 if (label === '12:00 AM') label = 'Midnight';
                 if (label === '12:00 PM') label = 'Noon';
 
-                options.push({ value: label, label });
+                // Only filter times for start time on today's date
+                if (!isStartTime || !isToday || 
+                    (hour > estNow.getHours() || 
+                    (hour === estNow.getHours() && minute >= Math.ceil(estNow.getMinutes() / 30) * 30))) {
+                    options.push({ value: label, label });
+                }
             }
         }
         return options;
+    };
+
+    // Filter time options based on selected date
+    const getTimeOptions = () => {
+        return generateTimeOptions();
     };
 
     const handleRangeChange = (field, values) => {
@@ -193,8 +228,7 @@ const AvailableCars = () => {
                                 value={filters.startTime}
                                 onChange={(e) => handleInputChange('startTime', e.target.value)}
                             >
-                                <option value="">Select Time</option>
-                                {generateTimeOptions().map((time, index) => (
+                                {generateTimeOptions(true).map((time, index) => (
                                     <option key={index} value={time.value}>{time.label}</option>
                                 ))}
                             </select>
@@ -212,8 +246,7 @@ const AvailableCars = () => {
                                 value={filters.endTime}
                                 onChange={(e) => handleInputChange('endTime', e.target.value)}
                             >
-                                <option value="">Select Time</option>
-                                {generateTimeOptions().map((time, index) => (
+                                {generateTimeOptions(false).map((time, index) => (
                                     <option key={index} value={time.value}>{time.label}</option>
                                 ))}
                             </select>

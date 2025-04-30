@@ -83,8 +83,8 @@ const loginUser = async (req, res) => {
 
         const { email, password } = req.body;
 
-        // Find user by email
-        const user = await User.findOne({ email });
+        // Find user by email (case-insensitive)
+        const user = await User.findOne({ email: email.toLowerCase() });
         if (!user) {
             return res.status(400).json({ error: 'Invalid email or password' });
         }
