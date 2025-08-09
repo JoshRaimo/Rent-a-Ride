@@ -5,7 +5,6 @@ const Booking = require('../models/Booking');
 // Get user count
 const getUserCount = async (req, res) => {
     try {
-        console.log(`Admin ${req.user.id} requested user count.`); // Debugging log
         const count = await User.countDocuments();
         res.status(200).json({ count });
     } catch (error) {
@@ -17,7 +16,6 @@ const getUserCount = async (req, res) => {
 // Get car count
 const getCarCount = async (req, res) => {
     try {
-        console.log(`Admin ${req.user.id} requested car count.`); // Debugging log
         const count = await Car.countDocuments();
         res.status(200).json({ count });
     } catch (error) {
@@ -29,7 +27,6 @@ const getCarCount = async (req, res) => {
 // Get booking count
 const getBookingCount = async (req, res) => {
     try {
-        console.log(`Admin ${req.user.id} requested booking count.`); // Debugging log
         const count = await Booking.countDocuments();
         res.status(200).json({ count });
     } catch (error) {

@@ -100,8 +100,7 @@ const getAvailableCars = async (req, res) => {
             filter.model = { $regex: model, $options: 'i' };
         }
 
-        // Log the filter for debugging
-        console.log('Filter:', filter);
+        // Removed verbose filter log
 
         // Fetch available cars with all filters applied
         const availableCars = await Car.find(filter);
