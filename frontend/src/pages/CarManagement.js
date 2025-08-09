@@ -28,14 +28,11 @@ const CarManagement = () => {
     const modelOptions = models.map(model => ({ value: model, label: model }));
     const yearOptions = years.map(year => ({ value: year, label: year }));
 
-    // Fetch car makes from carapi
+    // Fetch car makes from carapi (server injects auth)
     useEffect(() => {
         const fetchMakes = async () => {
             try {
-                const jwt = localStorage.getItem('carApiJwt');
-                const response = await axios.get(`${process.env.REACT_APP_API_URL}/carapi/makes`, {
-                    headers: { Authorization: `Bearer ${jwt}` },
-                });
+                const response = await axios.get(`${process.env.REACT_APP_API_URL}/carapi/makes`);
                 setMakes(response.data.data.map((make) => ({ value: make.name, label: make.name })));
             } catch (error) {
                 console.error('Error fetching makes:', error.message);
@@ -54,12 +51,7 @@ const CarManagement = () => {
     // Fetch all cars
     const fetchCars = async () => {
         try {
-            const jwt = localStorage.getItem('carApiJwt'); // Retrieve JWT
-            const response = await axios.get(`${process.env.REACT_APP_API_URL}/cars`, {
-                headers: {
-                    Authorization: `Bearer ${jwt}`, // Include JWT in headers
-                },
-            });
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/cars`);
 
             if (Array.isArray(response.data)) {
                 setCars(response.data);
@@ -77,7 +69,7 @@ const CarManagement = () => {
         fetchCars();
     }, []);
 
-    // Fetch models based on make
+    // Fetch models based on make (server injects auth)
     useEffect(() => {
         const fetchModels = async () => {
             if (!make) {
@@ -85,10 +77,8 @@ const CarManagement = () => {
                 return;
             }
             try {
-                const jwt = localStorage.getItem('carApiJwt');
                 const response = await axios.get(`${process.env.REACT_APP_API_URL}/carapi/models`, {
                     params: { make },
-                    headers: { Authorization: `Bearer ${jwt}` },
                 });
                 setModels(response.data.data.map((model) => model.name));
             } catch (error) {
@@ -99,7 +89,7 @@ const CarManagement = () => {
         fetchModels();
     }, [make]);
 
-    // Fetch years based on make and model
+    // Fetch years based on make and model (server injects auth)
     useEffect(() => {
         const fetchYears = async () => {
             if (!make || !selectedModel) {
@@ -108,10 +98,8 @@ const CarManagement = () => {
             }
 
             try {
-                const jwt = localStorage.getItem('carApiJwt');
                 const response = await axios.get(`${process.env.REACT_APP_API_URL}/carapi/years`, {
                     params: { make, model: selectedModel },
-                    headers: { Authorization: `Bearer ${jwt}` },
                 });
                 setYears(response.data);
             } catch (error) {

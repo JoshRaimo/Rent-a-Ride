@@ -1,32 +1,22 @@
 const express = require('express');
 const axios = require('axios');
 const router = express.Router();
+const { getAuthHeader } = require('../services/carApiAuth');
 
-/**
- * Middleware to validate the Authorization header and extract JWT
- */
-const validateAuthorizationHeader = (req, res, next) => {
-    const authorizationHeader = req.headers.authorization;
-    if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Authorization header is missing or invalid.' });
-    }
-    req.jwt = authorizationHeader.split(' ')[1]; // Extract JWT
-    next();
+// Inject server-side CarAPI authorization
+const withCarApiAuth = async (config = {}) => {
+    const headers = await getAuthHeader();
+    return { ...config, headers: { ...(config.headers || {}), ...headers } };
 };
 
 /**
  * Route to fetch car makes
  * Optional query parameters: page, limit
  */
-router.get('/makes', validateAuthorizationHeader, async (req, res) => {
+router.get('/makes', async (req, res) => {
     try {
         const { page = 1, limit = 1000 } = req.query; // Optional pagination parameters
-        const response = await axios.get('https://carapi.app/api/makes', {
-            headers: {
-                Authorization: `Bearer ${req.jwt}`,
-            },
-            params: { page, limit }, // Pass pagination if needed
-        });
+        const response = await axios.get('https://carapi.app/api/makes', await withCarApiAuth({ params: { page, limit } }));
         res.status(200).json(response.data);
     } catch (error) {
         console.error('Error fetching car makes:', {
@@ -45,19 +35,14 @@ router.get('/makes', validateAuthorizationHeader, async (req, res) => {
  * Route to fetch car models for a specific make
  * Query Parameter: make (required)
  */
-router.get('/models', validateAuthorizationHeader, async (req, res) => {
+router.get('/models', async (req, res) => {
     const { make } = req.query;
     if (!make) {
         return res.status(400).json({ error: 'Make query parameter is required.' });
     }
 
     try {
-        const response = await axios.get('https://carapi.app/api/models', {
-            headers: {
-                Authorization: `Bearer ${req.jwt}`,
-            },
-            params: { make },
-        });
+        const response = await axios.get('https://carapi.app/api/models', await withCarApiAuth({ params: { make } }));
         res.status(200).json(response.data);
     } catch (error) {
         console.error('Error fetching car models:', {
@@ -76,7 +61,7 @@ router.get('/models', validateAuthorizationHeader, async (req, res) => {
  * Route to fetch car years for a specific make and model
  * Query Parameters: make (required), model (required)
  */
-router.get('/years', validateAuthorizationHeader, async (req, res) => {
+router.get('/years', async (req, res) => {
     const { make, model } = req.query;
 
     // Ensure both make and model are provided
@@ -85,12 +70,7 @@ router.get('/years', validateAuthorizationHeader, async (req, res) => {
     }
 
     try {
-        const response = await axios.get('https://carapi.app/api/years', {
-            headers: {
-                Authorization: `Bearer ${req.jwt}`,
-            },
-            params: { make, model },
-        });
+        const response = await axios.get('https://carapi.app/api/years', await withCarApiAuth({ params: { make, model } }));
         res.status(200).json(response.data); // Return the list of years
     } catch (error) {
         console.error('Error fetching car years:', {
