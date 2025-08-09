@@ -1,63 +1,14 @@
 // Import required modules
-const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
 const path = require('path');
+const express = require('express');
 require('dotenv').config();
 
-// Import routes
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes'); // User Routes
-const carApiRoutes = require('./routes/carApiRoutes'); // Car API Routes
-const carRoutes = require('./routes/carRoutes'); // Car CRUD Routes
-const bookingRoutes = require('./routes/bookingRoutes'); // Booking Routes
-const jwtRoutes = require('./routes/jwtRoutes');
-const imageRoutes = require('./routes/imageRoutes');
-const statsRoutes = require('./routes/statsRoutes'); // Stats Routes
-const errorHandler = require('./middleware/errorHandler');
-
-const app = express();
+// Import the express app
+const app = require('./app');
 const PORT = process.env.PORT || 5000;
 
-// CORS configuration: Allow both local and production frontend URLs
-const allowedOrigins = [
-    'http://localhost:3000',
-    'https://rent-a-ride-mfvw.onrender.com',
-];
-
-app.use(
-    cors({
-        origin: function (origin, callback) {
-            if (!origin || allowedOrigins.includes(origin)) {
-                callback(null, true);
-            } else {
-                callback(new Error('Not allowed by CORS'));
-            }
-        },
-        credentials: true, // Allow credentials like cookies
-    })
-);
-
-// Middleware to parse incoming JSON requests
-app.use(express.json());
-
-// Health check route
-app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'OK', message: 'Backend is running!' });
-});
-
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/carapi', carApiRoutes); // Routes for Car API
-app.use('/api/cars', carRoutes); // Routes for Car CRUD Operations
-app.use('/api/bookings', bookingRoutes);
-app.use('/api/jwt', jwtRoutes);
-app.use('/api/images', imageRoutes);
-app.use('/api/stats', statsRoutes);
-
-// Error handling middleware
-app.use(errorHandler);
+// Note: Routes and middleware are mounted in app.js
 
 // Connect to MongoDB
 mongoose
