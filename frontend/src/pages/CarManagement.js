@@ -272,7 +272,15 @@ const CarManagement = () => {
                         <Select
                             options={makes}
                             value={make ? makes.find(option => option.value === make) : null}
-                            onChange={(selectedOption) => setMake(selectedOption ? selectedOption.value : '')}
+                            onChange={(selectedOption) => {
+                                const newMake = selectedOption ? selectedOption.value : '';
+                                setMake(newMake);
+                                // Reset dependent fields when make changes
+                                setSelectedModel('');
+                                setModels([]);
+                                setSelectedYear('');
+                                setYears([]);
+                            }}
                             isClearable
                             placeholder="Select or type make"
                         />
@@ -282,9 +290,16 @@ const CarManagement = () => {
                         <Select
                             options={modelOptions}
                             value={selectedModel ? modelOptions.find(option => option.value === selectedModel) : null}
-                            onChange={(selectedOption) => setSelectedModel(selectedOption ? selectedOption.value : '')}
+                            onChange={(selectedOption) => {
+                                const newModel = selectedOption ? selectedOption.value : '';
+                                setSelectedModel(newModel);
+                                // Reset years when model changes
+                                setSelectedYear('');
+                                setYears([]);
+                            }}
                             isClearable
                             placeholder="Select or type model"
+                            isDisabled={!make}
                         />
                     </div>
                     <div>
@@ -295,6 +310,7 @@ const CarManagement = () => {
                             onChange={(selectedOption) => setSelectedYear(selectedOption ? selectedOption.value : '')}
                             isClearable
                             placeholder="Select or type year"
+                            isDisabled={!make || !selectedModel}
                         />
                     </div>
                     <div>
