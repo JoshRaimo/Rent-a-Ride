@@ -14,18 +14,7 @@ const CarSearch = () => {
         const fetchMakes = async () => {
             try {
                 setError('');
-                const jwt = localStorage.getItem('carApiJwt');
-    
-                if (!jwt) {
-                    setError('JWT token is missing. Please authenticate first.');
-                    return;
-                }
-    
-                const response = await axios.get(`${process.env.REACT_APP_API_URL}/carapi/makes`, {
-                    headers: {
-                        Authorization: `Bearer ${jwt}`,
-                    },
-                });
+                const response = await axios.get(`${process.env.REACT_APP_API_URL}/carapi/makes`);
                 const makes = response.data.data.map((make) => make.name);
                 setCarMakes(makes);
             } catch (error) {
@@ -47,17 +36,8 @@ const CarSearch = () => {
 
         try {
             setError('');
-            const jwt = localStorage.getItem('carApiJwt'); 
-            if (!jwt) {
-                setError('JWT token is missing. Please authenticate first.');
-                return;
-            }
-
             const response = await axios.get(`${process.env.REACT_APP_API_URL}/carapi/models`, {
                 params: { make },
-                headers: {
-                    Authorization: `Bearer ${jwt}`,
-                },
             });
 
             // Update car models

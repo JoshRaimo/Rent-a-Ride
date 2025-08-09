@@ -12,10 +12,26 @@ function isTokenValid() {
 }
 
 async function fetchNewJwt() {
+  // In test environment, allow injecting a fake token to avoid network and brittle mocks
+  if (process.env.NODE_ENV === 'test' && process.env.TEST_CARAPI_JWT) {
+    cachedJwt = process.env.TEST_CARAPI_JWT;
+    cachedExpiryEpoch = Math.floor(Date.now() / 1000) + 300;
+    return cachedJwt;
+  }
+
   const apiToken = process.env.CAR_API_TOKEN || process.env.CAR_API_KEY; // support either name
   const apiSecret = process.env.CAR_API_SECRET;
+
+  // If only a key is provided and no secret, assume it's a long-lived API key usable as Bearer directly
+  if (apiToken && !apiSecret) {
+    cachedJwt = apiToken;
+    // Set far-future expiry (e.g., 30 days) so we don't refresh unnecessarily
+    cachedExpiryEpoch = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+    return cachedJwt;
+  }
+
   if (!apiToken || !apiSecret) {
-    throw new Error('Missing CAR_API_TOKEN (or CAR_API_KEY) and/or CAR_API_SECRET in environment');
+    throw new Error('Missing CarAPI credentials. Provide CAR_API_TOKEN and CAR_API_SECRET, or a long-lived CAR_API_KEY.');
   }
 
   const response = await axios.post('https://carapi.app/api/auth/login', {
@@ -23,7 +39,8 @@ async function fetchNewJwt() {
     api_secret: apiSecret,
   });
 
-  const token = response.data?.jwt || response.data?.token || response.data;
+  const data = response && response.data ? response.data : response;
+  const token = data?.jwt || data?.token || data;
   if (!token || typeof token !== 'string') {
     throw new Error('Unexpected CarAPI auth response');
   }

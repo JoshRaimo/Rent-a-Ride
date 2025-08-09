@@ -16,8 +16,22 @@ const withCarApiAuth = async (config = {}) => {
 router.get('/makes', async (req, res) => {
     try {
         const { page = 1, limit = 1000 } = req.query; // Optional pagination parameters
-        const response = await axios.get('https://carapi.app/api/makes', await withCarApiAuth({ params: { page, limit } }));
-        res.status(200).json(response.data);
+        const response = await axios.get('https://carapi.app/api/makes/v2', await withCarApiAuth({ params: { page, limit } }));
+
+        // Normalize to legacy shape { data: [{ name }] }
+        const payload = response?.data;
+        const list = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : Array.isArray(payload?.results)
+              ? payload.results
+              : Array.isArray(payload?.items)
+                ? payload.items
+                : [];
+
+        const normalized = list.map((m) => ({ name: m?.name ?? m?.make ?? m?.label ?? String(m) }));
+        res.status(200).json({ data: normalized });
     } catch (error) {
         console.error('Error fetching car makes:', {
             message: error.message,
@@ -42,8 +56,21 @@ router.get('/models', async (req, res) => {
     }
 
     try {
-        const response = await axios.get('https://carapi.app/api/models', await withCarApiAuth({ params: { make } }));
-        res.status(200).json(response.data);
+        const response = await axios.get('https://carapi.app/api/models/v2', await withCarApiAuth({ params: { make } }));
+
+        // Normalize to legacy shape { data: [{ name }] } expected by frontend
+        const payload = response?.data;
+        const list = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : Array.isArray(payload?.results)
+              ? payload.results
+              : Array.isArray(payload?.items)
+                ? payload.items
+                : [];
+        const normalized = list.map((m) => ({ name: m?.name ?? m?.model ?? m?.label ?? String(m) }));
+        res.status(200).json({ data: normalized });
     } catch (error) {
         console.error('Error fetching car models:', {
             message: error.message,
@@ -70,8 +97,21 @@ router.get('/years', async (req, res) => {
     }
 
     try {
-        const response = await axios.get('https://carapi.app/api/years', await withCarApiAuth({ params: { make, model } }));
-        res.status(200).json(response.data); // Return the list of years
+        const response = await axios.get('https://carapi.app/api/years/v2', await withCarApiAuth({ params: { make, model } }));
+
+        const payload = response?.data;
+        const list = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : Array.isArray(payload?.results)
+              ? payload.results
+              : Array.isArray(payload?.items)
+                ? payload.items
+                : [];
+        // Ensure array of numbers / strings
+        const normalized = list.map((y) => (typeof y === 'object' ? (y?.year ?? y?.name ?? y?.label) : y));
+        res.status(200).json(normalized);
     } catch (error) {
         console.error('Error fetching car years:', {
             message: error.message,
