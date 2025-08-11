@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Route, Routes, Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useMemo } from 'react';
+import { BrowserRouter as Router, Route, Routes, Link, useNavigate, useLocation } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-import Login from './pages/Login';
-import Register from './pages/Register';
+
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
 import AdminDashboard from './pages/AdminDashboard';
@@ -24,31 +23,52 @@ import {
     logout,
 } from './utils/auth';
 
-import { LogOut } from 'lucide-react'; // Import logout icon
+import { LogOut, Menu, X } from 'lucide-react'; // Import menu icons
+import LoginModal from './components/LoginModal';
+import RegisterModal from './components/RegisterModal';
+import { AuthModalProvider, useAuthModal } from './contexts/AuthModalContext';
 
 const App = () => {
     return (
         <Router>
-            <MainApp />
-            <ToastContainer
-                position="top-center"
-                autoClose={3000}
-                hideProgressBar={false}
-                newestOnTop={true}
-                closeOnClick
-                rtl={false}
-                pauseOnFocusLoss
-                draggable
-                pauseOnHover
-            />
+            <AuthModalProvider>
+                <MainApp />
+                <ToastContainer
+                    position="top-center"
+                    autoClose={3000}
+                    hideProgressBar={false}
+                    newestOnTop={true}
+                    closeOnClick
+                    rtl={false}
+                    pauseOnFocusLoss
+                    draggable
+                    pauseOnHover
+                />
+            </AuthModalProvider>
         </Router>
     );
 };
 
 const MainApp = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const [token, setTokenState] = useState(getToken());
     const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || null);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+    const { 
+        showLoginModal, 
+        showRegisterModal, 
+        openLoginModal, 
+        openRegisterModal, 
+        closeLoginModal, 
+        closeRegisterModal,
+        getPreLoginLocation,
+        clearPreLoginLocation
+    } = useAuthModal();
+
+    // Memoize isAuthenticated to prevent unnecessary re-renders
+    const isAuthenticated = useMemo(() => !!token, [token]);
 
     useEffect(() => {
         const validateToken = () => {
@@ -69,10 +89,23 @@ const MainApp = () => {
         validateToken();
     }, []);
 
+    // Close mobile menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (isMobileMenuOpen && !event.target.closest('.navbar')) {
+                setIsMobileMenuOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isMobileMenuOpen]);
+
     const handleLogout = (showNotification = true) => {
         logout(navigate);
         setTokenState(null);
         setUser(null);
+        setIsMobileMenuOpen(false); // Close mobile menu on logout
         if (showNotification) {
             toast.success('Logged out successfully!');
         }
@@ -83,12 +116,25 @@ const MainApp = () => {
         const decoded = decodeToken();
         setTokenState(newToken);
         setUser(decoded);
-        navigate('/');
+        setIsMobileMenuOpen(false); // Close mobile menu on login
+        
+        // Close the login modal
+        closeLoginModal();
+        
+        // Redirect to pre-login location if available
+        const preLoginLocation = getPreLoginLocation();
+        if (preLoginLocation && preLoginLocation !== '/') {
+            navigate(preLoginLocation);
+            clearPreLoginLocation();
+        }
     };
 
     const handleUserUpdate = (updatedUser) => {
         setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+    };
+
+    const closeMobileMenu = () => {
+        setIsMobileMenuOpen(false);
     };
 
     return (
@@ -97,42 +143,49 @@ const MainApp = () => {
         }}>
             {/* Navbar */}
             <header className="navbar shadow-md bg-white z-40 fixed top-0 left-0 w-full" style={{ height: "var(--navbar-height)" }}>
-                <div className="container mx-auto flex justify-between items-center px-6 h-full">
+                <div className="container mx-auto flex justify-between items-center px-4 md:px-6 h-full">
                     {/* Logo */}
-                    <Link to="/" className="flex items-center space-x-2">
-                        <img src="/rentaridelogo.png" alt="Rent-a-Ride Logo" className="h-12 w-auto transition-transform duration-300 hover:scale-110" />
+                    <Link to="/" className="flex items-center space-x-2" onClick={closeMobileMenu}>
+                        <img src="/rentaridelogo.png" alt="Rent-a-Ride Logo" className="h-10 md:h-12 w-auto transition-transform duration-300 hover:scale-110" />
                     </Link>
 
-                    {/* Spacer to balance layout */}
-                    <div className="flex-1" />
-
-                    {/* Authentication/Profile Links */}
-                    <div className="flex space-x-4 items-center">
-                        {!token ? (
-                            <>
-                                <Link to="/login" className="hover:text-blue-500 text-primary-color text-sm">
-                                    Login
-                                </Link>
-                                <Link to="/register" className="btn-signup">
-                                    Sign Up
-                                </Link>
-                            </>
-                        ) : (
-                            <>
-                                {user?.role === 'admin' && (
-                                    <Link
-                                        to="/admin-dashboard"
-                                        className="hover:text-blue-500 text-primary-color text-sm"
-                                    >
-                                        Admin Dashboard
-                                    </Link>
-                                )}
-                                                                <Link
-                                    to="/profile"
-                                    className="hover:text-blue-500 text-primary-color text-sm"
-                                >
-                                    {user?.username || 'User'}
-                                </Link>
+                    {/* Desktop Navigation */}
+                    <div className="hidden md:flex space-x-4 items-center">
+                         {!token ? (
+                             <>
+                                 <Link 
+                                     to="#"
+                                     onClick={(e) => {
+                                         e.preventDefault();
+                                         openLoginModal(location.pathname);
+                                     }}
+                                     className="hover:text-blue-500 text-sm"
+                                 >
+                                     Login
+                                 </Link>
+                                 <button 
+                                     onClick={openRegisterModal}
+                                     className="btn-signup"
+                                 >
+                                     Sign Up
+                                 </button>
+                             </>
+                         ) : (
+                             <>
+                                 {user?.role === 'admin' && (
+                                     <Link
+                                         to="/admin-dashboard"
+                                         className="hover:text-blue-500 text-primary-color text-sm"
+                                     >
+                                         Admin Dashboard
+                                     </Link>
+                                 )}
+                                 <Link
+                                     to="/profile"
+                                     className="hover:text-blue-500 text-primary-color text-sm"
+                                 >
+                                     {user?.username || 'User'}
+                                 </Link>
                                 <button
                                     onClick={handleLogout}
                                     className="hover:text-red-500 text-primary-color text-sm"
@@ -143,16 +196,85 @@ const MainApp = () => {
                             </>
                         )}
                     </div>
+
+                    {/* Mobile Menu Button */}
+                    <button
+                        className="md:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
+                        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                        aria-label="Toggle mobile menu"
+                    >
+                        {isMobileMenuOpen ? (
+                            <X className="w-6 h-6 text-primary-color" />
+                        ) : (
+                            <Menu className="w-6 h-6 text-primary-color" />
+                        )}
+                    </button>
                 </div>
+
+                {/* Mobile Menu Overlay */}
+                {isMobileMenuOpen && (
+                    <div className="md:hidden absolute top-full left-0 w-full bg-white shadow-lg border-t border-gray-200">
+                        <div className="px-4 py-6 space-y-4">
+                            {!token ? (
+                                <>
+                                    <button 
+                                        onClick={() => {
+                                            openLoginModal(location.pathname);
+                                            closeMobileMenu();
+                                        }}
+                                        className="w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 text-primary-color font-medium"
+                                    >
+                                        Login
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            openRegisterModal();
+                                            closeMobileMenu();
+                                        }}
+                                        className="w-full py-3 px-4 rounded-lg bg-primary-color text-white font-medium hover:bg-accent-color transition-colors"
+                                    >
+                                        Sign Up
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    {user?.role === 'admin' && (
+                                        <Link
+                                            to="/admin-dashboard"
+                                            className="block py-3 px-4 rounded-lg hover:bg-gray-50 text-primary-color font-medium"
+                                            onClick={closeMobileMenu}
+                                        >
+                                            Admin Dashboard
+                                        </Link>
+                                    )}
+                                    <Link
+                                        to="/profile"
+                                        className="block py-3 px-4 rounded-lg hover:bg-gray-50 text-primary-color font-medium"
+                                        onClick={closeMobileMenu}
+                                    >
+                                        {user?.username || 'User'}
+                                    </Link>
+                                    <button
+                                        onClick={() => {
+                                            handleLogout();
+                                            closeMobileMenu();
+                                        }}
+                                        className="w-full text-left py-3 px-4 rounded-lg hover:bg-gray-50 text-red-500 font-medium"
+                                    >
+                                        Logout
+                                    </button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 container mx-auto px-4 pt-20 pb-6">
+            <main className="flex-1 container mx-auto px-4 md:px-6 pt-20 pb-6">
                 <Routes>
                     <Route path="/" element={<HomePage />} />
-                    <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route path="/available-cars" element={<AvailableCars />} />
+                    <Route path="/available-cars" element={<AvailableCars isAuthenticated={isAuthenticated} />} />
                     <Route path="/book-car" element={<BookCar />} />
 
                     {user?.role === 'admin' && (
@@ -172,6 +294,19 @@ const MainApp = () => {
                     </Route>
                 </Routes>
             </main>
+
+            {/* Auth Modals */}
+                         <LoginModal 
+                 isOpen={showLoginModal}
+                 onClose={closeLoginModal}
+                 onLoginSuccess={handleLoginSuccess}
+                 onShowRegister={openRegisterModal}
+             />
+             <RegisterModal 
+                 isOpen={showRegisterModal}
+                 onClose={closeRegisterModal}
+                 onShowLogin={openLoginModal}
+             />
         </div>
     );
 };

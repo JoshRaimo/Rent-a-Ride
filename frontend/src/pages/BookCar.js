@@ -4,10 +4,13 @@ import axios from 'axios';
 import { parseISO } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { toast } from 'react-toastify';
+import { useAuthModal } from '../contexts/AuthModalContext';
+import CarListing from '../components/CarListing';
 
 const BookCar = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { notifyBookingMade } = useAuthModal();
     const EST_TIMEZONE = 'America/New_York';
     
     const car = location.state?.car || null;
@@ -19,8 +22,20 @@ const BookCar = () => {
 
     if (!car || !carId || !startDate || !startTime || !endDate || !endTime) {
         return (
-            <div className="text-center text-red-500 mt-10">
-                <p>Error: Missing booking details. Please go back and select a car with valid dates and times.</p>
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center bg-white p-8 rounded-xl shadow-lg max-w-md mx-4">
+                    <div className="text-red-500 text-6xl mb-4">
+                        <i className="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-2">Missing Information</h2>
+                    <p className="text-gray-600 mb-6">Please go back and select a car with valid dates and times.</p>
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors duration-200"
+                    >
+                        Go Back
+                    </button>
+                </div>
             </div>
         );
     }
@@ -56,6 +71,7 @@ const BookCar = () => {
 
             // Show success message
             toast.success('Booking confirmed successfully!');
+            notifyBookingMade(); // Call the new hook function
 
             // Add a small delay before navigation to ensure the toast is visible
             setTimeout(() => {
@@ -87,64 +103,111 @@ const BookCar = () => {
         return `${hour.toString().padStart(2, '0')}:${minutes}`;
     };
 
-    return (
-        <div className="container mx-auto mt-10 p-6 max-w-4xl">
-            <h2 className="hero-title mb-8">
-                Confirm Your Booking
-            </h2>
+    // Calculate total days and price
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    const totalPrice = totalDays * car.pricePerDay;
 
-            <div className="grid md:grid-cols-2 gap-8">
-                {/* Car Details Card - Matching AvailableCars layout */}
-                <div className="car-listing">
-                    <h2>{car.make} {car.model} {car.year}</h2>
-                    <img 
-                        src={car.image} 
-                        alt={`${car.make} ${car.model}`}
-                        className="w-full h-auto object-cover rounded-lg"
-                    />
-                    <div className="mt-4">
-                        <p className="car-price text-center">
-                            ${car.pricePerDay} <span className="text-gray-600">per day</span>
-                        </p>
-                    </div>
+    return (
+        <div className="min-h-screen bg-gray-50 py-8">
+            <div className="container mx-auto px-4 max-w-6xl">
+                {/* Header */}
+                <div className="text-center mb-8">
+                    <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                        Confirm Your Booking
+                    </h1>
+                    <p className="text-xl text-gray-600">
+                        Review your car selection and booking details
+                    </p>
                 </div>
 
-                {/* Booking Details Card */}
-                <div className="car-listing">
-                    <h2>Booking Details</h2>
-                    <div className="space-y-4 mt-4">
-                        <div>
-                            <p className="text-gray-600">Pick-up</p>
-                            <p className="font-semibold">
-                                {new Date(`${startDate}T12:00:00`).toLocaleDateString('en-US', { 
-                                    weekday: 'long',
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric'
-                                })}
-                            </p>
-                            <p className="text-primary-color">{startTime}</p>
-                        </div>
-                        <div className="mt-4">
-                            <p className="text-gray-600">Drop-off</p>
-                            <p className="font-semibold">
-                                {new Date(`${endDate}T12:00:00`).toLocaleDateString('en-US', { 
-                                    weekday: 'long',
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric'
-                                })}
-                            </p>
-                            <p className="text-primary-color">{endTime}</p>
-                        </div>
+                <div className="grid lg:grid-cols-2 gap-8">
+                    {/* Car Details - Using the modern CarListing component */}
+                    <div className="space-y-6">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-4">Selected Vehicle</h2>
+                        <CarListing 
+                            car={car} 
+                            showEditDeleteButtons={false}
+                            isDynamic={false}
+                        />
+                    </div>
+
+                    {/* Booking Details Card */}
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-6">
+                        <h2 className="text-2xl font-bold text-gray-900 mb-6">Booking Summary</h2>
                         
-                        <div className="button-group">
-                            <button
-                                className="confirm-button w-full"
-                                onClick={handleConfirmBooking}
-                            >
-                                Confirm Booking
-                            </button>
+                        {/* Pick-up Details */}
+                        <div className="bg-blue-50 rounded-lg p-4 mb-6">
+                            <div className="flex items-center mb-3">
+                                <div className="bg-blue-500 text-white p-2 rounded-full mr-3">
+                                    <i className="fas fa-arrow-up text-sm"></i>
+                                </div>
+                                <h3 className="text-lg font-semibold text-blue-900">Pick-up</h3>
+                            </div>
+                            <div className="ml-11">
+                                <p className="text-2xl font-bold text-blue-900">
+                                    {new Date(`${startDate}T12:00:00`).toLocaleDateString('en-US', { 
+                                        weekday: 'long',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    })}
+                                </p>
+                                <p className="text-lg text-blue-700 font-medium">{startTime}</p>
+                            </div>
+                        </div>
+
+                        {/* Drop-off Details */}
+                        <div className="bg-green-50 rounded-lg p-4 mb-6">
+                            <div className="flex items-center mb-3">
+                                <div className="bg-green-500 text-white p-2 rounded-full mr-3">
+                                    <i className="fas fa-arrow-down text-sm"></i>
+                                </div>
+                                <h3 className="text-lg font-semibold text-green-900">Drop-off</h3>
+                            </div>
+                            <div className="ml-11">
+                                <p className="text-2xl font-bold text-green-900">
+                                    {new Date(`${endDate}T12:00:00`).toLocaleDateString('en-US', { 
+                                        weekday: 'long',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    })}
+                                </p>
+                                <p className="text-lg text-green-700 font-medium">{endTime}</p>
+                            </div>
+                        </div>
+
+                        {/* Duration and Price Summary */}
+                        <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-gray-600">Duration:</span>
+                                <span className="font-semibold text-gray-900">
+                                    {totalDays} {totalDays === 1 ? 'day' : 'days'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-gray-600">Rate per day:</span>
+                                <span className="font-semibold text-gray-900">${car.pricePerDay}</span>
+                            </div>
+                            <hr className="my-3" />
+                            <div className="flex justify-between items-center">
+                                <span className="text-xl font-bold text-gray-900">Total Price:</span>
+                                <span className="text-2xl font-bold text-green-600">${totalPrice}</span>
+                            </div>
+                        </div>
+
+                        {/* Confirm Button */}
+                        <button
+                            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+                            onClick={handleConfirmBooking}
+                        >
+                            <i className="fas fa-check-circle mr-2"></i>
+                            Confirm Booking
+                        </button>
+
+                        {/* Additional Info */}
+                        <div className="mt-4 text-center text-sm text-gray-500">
+                            <p>By confirming, you agree to our rental terms and conditions</p>
                         </div>
                     </div>
                 </div>

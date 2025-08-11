@@ -177,71 +177,88 @@ const HomePage = () => {
     return (
         <div className="homepage">
             {/* Hero Section */}
-            <section className="hero bg-white shadow-lg rounded-lg p-10 mx-auto max-w-4xl text-center">
-                <h1 className="hero-title text-4xl font-bold text-primary-color">
+            <section className="hero bg-white shadow-lg rounded-lg p-4 md:p-10 mx-auto max-w-4xl text-center">
+                <h1 className="hero-title text-2xl md:text-4xl font-bold text-primary-color">
                     Find Your Perfect Ride
                 </h1>
-                <p className="hero-subtitle text-lg text-gray-600 mt-2">
+                <p className="hero-subtitle text-base md:text-lg text-gray-600 mt-2">
                     Rent the car of your dreams for your next adventure
                 </p>
-                <div className="search-bar flex flex-col md:flex-row justify-center gap-4 mt-6">
+                <div className="search-bar grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4 mt-6">
                     
                     {/* Start Date Input */}
-                    <input
-                        type="date"
-                        className="border border-gray-300 rounded-md p-3 w-full md:w-auto"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        min={todayFormatted}
-                    />
+                    <div className="sm:col-span-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Start Date</label>
+                        <input
+                            type="date"
+                            className="border border-gray-300 rounded-md p-3 w-full text-sm"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            min={todayFormatted}
+                        />
+                    </div>
                     
                     {/* Start Time Dropdown */}
-                    <select
-                        className="border border-gray-300 rounded-md p-3 w-full md:w-auto"
-                        value={startTime}
-                        onChange={(e) => setStartTime(e.target.value)}
-                    >
-                        {generateTimeOptions(true).map((time, index) => (
-                            <option key={index} value={time.value}>{time.label}</option>
-                        ))}
-                    </select>
+                    <div className="sm:col-span-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1 text-left">Start Time</label>
+                        <select
+                            className="border border-gray-300 rounded-md p-3 w-full text-sm"
+                            value={startTime}
+                            onChange={(e) => setStartTime(e.target.value)}
+                        >
+                            {generateTimeOptions(true).map((time, index) => (
+                                <option key={index} value={time.value}>{time.label}</option>
+                            ))}
+                        </select>
+                    </div>
 
                     {/* End Date Input */}
-                    <input
-                        type="date"
-                        className="border border-gray-300 rounded-md p-3 w-full md:w-auto"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        min={startDate || todayFormatted}
-                    />
+                    <div className="sm:col-span-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1 text-left">End Date</label>
+                        <input
+                            type="date"
+                            className="border border-gray-300 rounded-md p-3 w-full text-sm"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            min={startDate || todayFormatted}
+                        />
+                    </div>
                     
                     {/* End Time Dropdown */}
-                    <select
-                        className="border border-gray-300 rounded-md p-3 w-full md:w-auto"
-                        value={endTime}
-                        onChange={(e) => setEndTime(e.target.value)}
-                    >
-                        {generateTimeOptions(false).map((time, index) => (
-                            <option key={index} value={time.value}>{time.label}</option>
-                        ))}
-                    </select>
+                    <div className="sm:col-span-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1 text-left">End Time</label>
+                        <select
+                            className="border border-gray-300 rounded-md p-3 w-full text-sm"
+                            value={endTime}
+                            onChange={(e) => setEndTime(e.target.value)}
+                        >
+                            {generateTimeOptions(false).map((time, index) => (
+                                <option key={index} value={time.value}>{time.label}</option>
+                            ))}
+                        </select>
+                    </div>
 
                     {/* Search Button */}
-                    <button className="btn-primary" onClick={handleSearch}>
-                        Search Cars
-                    </button>
+                    <div className="sm:col-span-2 lg:col-span-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1 text-left opacity-0">Search</label>
+                        <button className="btn-primary w-full" onClick={handleSearch}>
+                            Search Cars
+                        </button>
+                    </div>
                 </div>
             </section>
 
             {/* Featured Cars Section */}
-            <section className="py-12 bg-secondary-color">
-                <h2 className="text-3xl font-bold text-center text-primary-color mb-8">
+            <section className="py-8 md:py-12 bg-secondary-color">
+                <h2 className="text-2xl md:text-3xl font-bold text-center text-primary-color mb-6 md:mb-8">
                     Featured Cars
                 </h2>
                 {loading ? (
-                    <p className="text-center">Loading...</p>
+                    <div className="flex justify-center items-center py-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-color"></div>
+                    </div>
                 ) : (
-                    <div className="featured-cars grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto px-4">
+                    <div className="featured-cars grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 max-w-7xl mx-auto px-4">
                         {featuredCars.map((car, idx) => (
                             <CarListing
                                 key={idx}

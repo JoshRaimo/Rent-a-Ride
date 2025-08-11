@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -6,19 +6,21 @@ import 'react-toastify/dist/ReactToastify.css';
 import CarListing from '../components/CarListing';
 import { Range } from 'react-range';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
+import { useAuthModal } from '../contexts/AuthModalContext';
 
-const AvailableCars = () => {
+const AvailableCars = ({ isAuthenticated }) => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { openLoginModal, bookingMade, clearBookingNotification } = useAuthModal();
     const EST_TIMEZONE = 'America/New_York';
+    
+    // Memoize date values to prevent infinite re-renders
+    const now = useMemo(() => new Date(), []);
+    const estNow = useMemo(() => toDate(now, { timeZone: EST_TIMEZONE }), [now]);
+    const today = useMemo(() => new Date(estNow.getFullYear(), estNow.getMonth(), estNow.getDate()), [estNow]);
+    const todayFormatted = useMemo(() => formatInTimeZone(today, EST_TIMEZONE, 'yyyy-MM-dd'), [today]);
 
-    // Get current date and time in EST
-    const now = new Date();
-    const estNow = toDate(now, { timeZone: EST_TIMEZONE });
-    const today = new Date(estNow.getFullYear(), estNow.getMonth(), estNow.getDate());
-    const todayFormatted = formatInTimeZone(today, EST_TIMEZONE, 'yyyy-MM-dd');
-
-    const getNextHalfHour = () => {
+    const getNextHalfHour = useCallback(() => {
         const nextHalfHour = toDate(new Date(), { timeZone: EST_TIMEZONE });
         const currentMinutes = estNow.getMinutes();
         const additionalMinutes = currentMinutes % 30 === 0 ? 30 : 0;
@@ -32,12 +34,12 @@ const AvailableCars = () => {
             time: label,
             isNextDay: nextHalfHour.getHours() === 0 && nextHalfHour.getMinutes() === 0
         };
-    };
+    }, [estNow, EST_TIMEZONE]);
 
     const [cars, setCars] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [hasInitialized, setHasInitialized] = useState(false);
 
     const [filters, setFilters] = useState({
         startDate: location.state?.startDate || todayFormatted,
@@ -50,32 +52,54 @@ const AvailableCars = () => {
         model: '',
     });
 
-    const currentYear = new Date().getFullYear();
-    const minYear = 1990; // Adjust this based on your needs
-    const maxPrice = 1000; // Adjust this based on your maximum price
-
+    // Handle date adjustment for late night times (same logic as homepage)
     useEffect(() => {
-        const checkAuth = () => {
-            const token = localStorage.getItem('token');
-            setIsAuthenticated(!!token);
-        };
+        if (!location.state?.startDate && !location.state?.endDate) {
+            const nextHalfHour = new Date();
+            const currentMinutes = now.getMinutes();
+            const additionalMinutes = currentMinutes % 30 === 0 ? 30 : 0;
+            nextHalfHour.setMinutes(Math.ceil(currentMinutes / 30) * 30 + additionalMinutes, 0, 0);
 
-        checkAuth();
-        window.addEventListener('storage', checkAuth);
-        return () => window.removeEventListener('storage', checkAuth);
-    }, []);
-
-    useEffect(() => {
-        if (filters.startDate && filters.endDate) {
-            // Add debounce to prevent too many API calls
-            const timeoutId = setTimeout(() => {
-                fetchAvailableCars();
-            }, 500);
-            return () => clearTimeout(timeoutId);
+            // If current time will roll over to midnight or is after 11:30 PM
+            if ((nextHalfHour.getHours() === 0 && nextHalfHour.getMinutes() === 0) || 
+                (now.getHours() === 23 && now.getMinutes() >= 30)) {
+                
+                // Set start date to tomorrow (next day)
+                const nextDay = new Date();
+                nextDay.setDate(now.getDate() + 1);
+                nextDay.setHours(0, 0, 0, 0);
+                const nextDayFormatted = nextDay.toISOString().split('T')[0];
+                
+                // Set end date to the day after tomorrow
+                const dayAfterNext = new Date(nextDay);
+                dayAfterNext.setDate(nextDay.getDate() + 1);
+                const dayAfterNextFormatted = dayAfterNext.toISOString().split('T')[0];
+                
+                setFilters(prev => ({
+                    ...prev,
+                    startDate: nextDayFormatted,
+                    endDate: dayAfterNextFormatted,
+                }));
+            } else {
+                // Set default end date to tomorrow if not already set
+                const tomorrow = new Date(today);
+                tomorrow.setDate(today.getDate() + 1);
+                const tomorrowFormatted = tomorrow.toISOString().split('T')[0];
+                
+                setFilters(prev => ({
+                    ...prev,
+                    endDate: tomorrowFormatted,
+                }));
+            }
         }
-    }, [filters]); // Simplified dependency array to watch all filter changes
+    }, [location.state]); // Only depend on location.state changes
 
-    const fetchAvailableCars = async () => {
+    const currentYear = useMemo(() => new Date().getFullYear(), []);
+    const minYear = 1990;
+    const maxPrice = 1000;
+
+    // Memoize the fetch function to prevent recreation on every render
+    const fetchAvailableCars = useCallback(async () => {
         if (!filters.startDate || !filters.endDate) {
             setError('Please select a start and end date.');
             return;
@@ -102,45 +126,94 @@ const AvailableCars = () => {
                 params: cleanedFilters
             });
 
-            // Log for debugging
-            console.log('Filters sent:', cleanedFilters);
-            console.log('Cars received:', response.data);
-
             setCars(response.data);
+            setHasInitialized(true);
         } catch (err) {
             console.error('Error fetching available cars:', err);
             setError('Failed to load available cars.');
         } finally {
             setLoading(false);
         }
-    };
+    }, [filters]);
 
-    const handleBookNow = (car) => {
+    // Single useEffect for all data fetching logic
+    useEffect(() => {
+        // Only fetch if we have the required filter values
+        if (filters.startDate && filters.endDate && filters.startTime && filters.endTime) {
+            // Initial load or filter change
+            if (!hasInitialized || filters.startDate !== location.state?.startDate || filters.endDate !== location.state?.endDate) {
+                fetchAvailableCars();
+            }
+        }
+    }, [filters.startDate, filters.endDate, filters.startTime, filters.endTime, hasInitialized, fetchAvailableCars, location.state]);
+
+    // Handle booking notifications
+    useEffect(() => {
+        if (bookingMade && hasInitialized) {
+            fetchAvailableCars();
+            clearBookingNotification();
+        }
+    }, [bookingMade, hasInitialized, fetchAvailableCars, clearBookingNotification]);
+
+    // Handle window focus (user returning to page)
+    useEffect(() => {
+        const handleFocus = () => {
+            if (hasInitialized && filters.startDate && filters.endDate) {
+                fetchAvailableCars();
+            }
+        };
+
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, [hasInitialized, filters.startDate, filters.endDate, fetchAvailableCars]);
+
+    const handleBookNow = useCallback((car) => {
         navigate('/book-car', { 
             state: { 
-                car,  // Send full car object
+                car,
                 startDate: filters.startDate,
                 startTime: filters.startTime,
                 endDate: filters.endDate,
                 endTime: filters.endTime
             } 
         });
-    };     
+    }, [navigate, filters.startDate, filters.startTime, filters.endDate, filters.endTime]);
 
-    const handleLoginRedirect = () => {
-        toast.warn('You must be logged in to book a car.', {
-            position: 'top-center',
-            autoClose: 3000,
-            hideProgressBar: true,
-            closeOnClick: true,
-            pauseOnHover: false,
-            draggable: false,
+    // Memoize the car data separately from authentication-dependent props
+    const carData = useMemo(() => {
+        if (loading || !cars.length) return null;
+        return cars;
+    }, [cars, loading]);
+
+    // Memoize the car listings with stable props - separate authentication logic
+    const carListings = useMemo(() => {
+        if (!carData) return null;
+        
+        return carData.map((car, idx) => {
+            // Create stable props that don't change with authentication (excluding key)
+            const stableProps = {
+                car,
+                showEditDeleteButtons: false,
+            };
+
+            // Add authentication-dependent props separately
+            if (isAuthenticated) {
+                stableProps.onBookNow = handleBookNow;
+                stableProps.onLogin = null;
+            } else {
+                stableProps.onBookNow = null;
+                stableProps.onLogin = () => openLoginModal(location.pathname);
+            }
+
+            // Use a stable key that doesn't change with authentication
+            return (
+                <CarListing
+                    key={`${car.carId}-${car.make}-${car.model}-${car.year}`}
+                    {...stableProps}
+                />
+            );
         });
-
-        setTimeout(() => {
-            navigate('/login');
-        }, 3000);
-    };
+    }, [carData, isAuthenticated, openLoginModal, handleBookNow, location.pathname]);
 
     const handleInputChange = (field, value) => {
         setFilters(prevFilters => ({
@@ -201,55 +274,67 @@ const AvailableCars = () => {
     };
 
     return (
-        <div className="container mx-auto mt-10 p-6">
-            <h2 className="text-3xl font-bold text-center text-primary-color mb-6">
+        <div className="container mx-auto mt-6 md:mt-10 p-3 md:p-6 available-cars-page">
+            <h2 className="text-2xl md:text-3xl font-bold text-center text-primary-color mb-4 md:mb-6">
                 Available Cars for Rent
             </h2>
 
-            <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex flex-col lg:flex-row gap-4 md:gap-6">
                 {/* Sidebar Filters */}
-                <div className="w-full md:w-1/4 bg-white rounded-lg shadow-lg p-4 h-fit">
+                <div className="w-full lg:w-1/4 bg-white rounded-lg shadow-lg p-4 h-fit order-2 lg:order-1">
                     <h3 className="font-semibold text-lg mb-4">Filters</h3>
                     
                     {/* Date and Time Filters */}
                     <div className="mb-4">
                         <h4 className="font-medium mb-2">Rental Period</h4>
-                        <div className="flex flex-wrap justify-center gap-4 mb-6">
-                            <input
-                                type="date"
-                                className="px-3 py-2 border border-gray-300 rounded-md"
-                                value={filters.startDate}
-                                onChange={(e) => handleInputChange('startDate', e.target.value)}
-                                min={todayFormatted}
-                            />
+                        <div className="grid grid-cols-2 md:grid-cols-1 gap-3 md:gap-4 mb-6">
+                            <div className="col-span-2 md:col-span-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                                <input
+                                    type="date"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                    value={filters.startDate}
+                                    onChange={(e) => handleInputChange('startDate', e.target.value)}
+                                    min={todayFormatted}
+                                />
+                            </div>
 
-                            <select
-                                className="px-3 py-2 border border-gray-300 rounded-md"
-                                value={filters.startTime}
-                                onChange={(e) => handleInputChange('startTime', e.target.value)}
-                            >
-                                {generateTimeOptions(true).map((time, index) => (
-                                    <option key={index} value={time.value}>{time.label}</option>
-                                ))}
-                            </select>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                                <select
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                    value={filters.startTime}
+                                    onChange={(e) => handleInputChange('startTime', e.target.value)}
+                                >
+                                    {generateTimeOptions(true).map((time, index) => (
+                                        <option key={index} value={time.value}>{time.label}</option>
+                                    ))}
+                                </select>
+                            </div>
 
-                            <input
-                                type="date"
-                                className="px-3 py-2 border border-gray-300 rounded-md"
-                                value={filters.endDate}
-                                onChange={(e) => handleInputChange('endDate', e.target.value)}
-                                min={filters.startDate || todayFormatted}
-                            />
+                            <div className="col-span-2 md:col-span-1">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                                <input
+                                    type="date"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                    value={filters.endDate}
+                                    onChange={(e) => handleInputChange('endDate', e.target.value)}
+                                    min={filters.startDate || todayFormatted}
+                                />
+                            </div>
 
-                            <select
-                                className="px-3 py-2 border border-gray-300 rounded-md"
-                                value={filters.endTime}
-                                onChange={(e) => handleInputChange('endTime', e.target.value)}
-                            >
-                                {generateTimeOptions(false).map((time, index) => (
-                                    <option key={index} value={time.value}>{time.label}</option>
-                                ))}
-                            </select>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                                <select
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                    value={filters.endTime}
+                                    onChange={(e) => handleInputChange('endTime', e.target.value)}
+                                >
+                                    {generateTimeOptions(false).map((time, index) => (
+                                        <option key={index} value={time.value}>{time.label}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -286,8 +371,9 @@ const AvailableCars = () => {
                                         {children}
                                     </div>
                                 )}
-                                renderThumb={({ props }) => (
+                                renderThumb={({ props, index }) => (
                                     <div
+                                        key={`price-thumb-${index}`}
                                         {...props}
                                         className="h-4 w-4 rounded-full bg-white border-2 border-primary-color focus:outline-none"
                                         style={{
@@ -333,8 +419,9 @@ const AvailableCars = () => {
                                         {children}
                                     </div>
                                 )}
-                                renderThumb={({ props }) => (
+                                renderThumb={({ props, index }) => (
                                     <div
+                                        key={`year-thumb-${index}`}
                                         {...props}
                                         className="h-4 w-4 rounded-full bg-white border-2 border-primary-color focus:outline-none"
                                         style={{
@@ -375,29 +462,27 @@ const AvailableCars = () => {
                 </div>
 
                 {/* Main Content */}
-                <div className="w-full md:w-3/4">
+                <div className="w-full md:w-3/4 order-1 lg:order-2">
                     {/* Error Message */}
                     {error && <p className="text-red-500 text-center mb-4">{error}</p>}
 
                     {/* Loading State */}
                     {loading ? (
-                        <p className="text-center">Loading...</p>
+                        <div className="flex justify-center items-center py-12">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-color"></div>
+                        </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-                            {cars.length > 0 ? (
-                                cars.map((car) => (
-                                    <CarListing
-                                        key={car.carId}
-                                        car={car}
-                                        showEditDeleteButtons={false}
-                                        onBookNow={isAuthenticated ? handleBookNow : null}
-                                        onLogin={!isAuthenticated ? handleLoginRedirect : null}
-                                    />
-                                ))
-                            ) : (
-                                <p className="text-center text-gray-500">
-                                    No cars available for the selected dates and times.
-                                </p>
+                        <div className="featured-cars grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 max-w-7xl mx-auto">
+                            {carListings}
+                            {carListings === null && (
+                                <div className="col-span-full text-center py-12">
+                                    <p className="text-gray-500 text-lg">
+                                        No cars available for the selected dates and times.
+                                    </p>
+                                    <p className="text-gray-400 text-sm mt-2">
+                                        Try adjusting your filters or selecting different dates.
+                                    </p>
+                                </div>
                             )}
                         </div>
                     )}

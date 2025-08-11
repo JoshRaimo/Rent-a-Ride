@@ -263,65 +263,125 @@ body {
 
 /* ---- CAR LISTING STYLING ---- */
 .car-listing {
-    border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 1rem;
-    transition: transform 0.2s ease, box-shadow 0.3s ease;
+    position: relative;
+    overflow: hidden;
 }
 
+.car-listing::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3B82F6, #10B981, #F59E0B);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.car-listing:hover::before {
+    opacity: 1;
+}
+
+/* Enhanced shadow effects for ALL car listings (consistent across all pages) */
 .car-listing:hover {
     transform: translateY(-2px);
-    box-shadow: 0px 6px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
-.car-listing h2 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-color);
-    text-align: center;
-}
-
-.car-listing p {
-    font-size: 1rem;
-    color: var(--text-color);
-}
-
+/* Image consistency and display */
 .car-listing img {
-    margin-top: 0.5rem;
-    width: 100%;
-    height: auto;
-    object-cover: cover;
+    max-width: 100%;
+    max-height: 100%;
+    transition: transform 0.3s ease;
     border-radius: 0.5rem;
-    max-height: 200px;
 }
 
-.car-price {
-    font-size: 1rem;
-    color: var(--text-color);
-    text-align: center; /* Center the price */
-    margin-top: 0.5rem; /* Add some space above the price */
-    font-weight: bold; /* Make the price bold */
+/* Enhanced image hover effects for ALL car listings */
+.car-listing:hover img {
+    transform: scale(1.02);
 }
 
-.car-listing .button-group {
-    margin-top: 1rem;
-    display: flex;
-    justify-content: space-between;
+.car-listing .image-container {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border: 1px solid #e2e8f0;
+    position: relative;
 }
 
-.car-listing .button-group button {
-    padding: 0.5rem 1rem;
+.car-listing .image-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     border-radius: 0.5rem;
-    color: white;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    pointer-events: none;
 }
 
-.car-listing .button-group .edit-button {
-    background-color: #F59E0B; /* Yellow */
+/* Ensure consistent image dimensions across all car listings */
+.car-listing .image-container {
+    min-height: 12rem;
 }
 
-.car-listing .button-group .delete-button {
-    background-color: #EF4444; /* Red */
+@media (min-width: 768px) {
+    .car-listing .image-container {
+        min-height: 14rem;
+    }
+}
+
+/* Enhanced button styles for car listings */
+.car-listing .book-button {
+    background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+    border: none;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+}
+
+.car-listing .book-button:hover {
+    background: linear-gradient(135deg, #2563EB, #1E40AF);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.car-listing .login-button {
+    background: linear-gradient(135deg, #6B7280, #4B5563);
+    border: none;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+}
+
+.car-listing .login-button:hover {
+    background: linear-gradient(135deg, #4B5563, #374151);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.car-listing .edit-button {
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    border: none;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+}
+
+.car-listing .edit-button:hover {
+    background: linear-gradient(135deg, #D97706, #B45309);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.car-listing .delete-button {
+    background: linear-gradient(135deg, #EF4444, #DC2626);
+    border: none;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+}
+
+.car-listing .delete-button:hover {
+    background: linear-gradient(135deg, #DC2626, #B91C1C);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
 }
 
 .admin-sidebar {
@@ -362,4 +422,339 @@ body {
 
 .active-link {
     background-color: var(--button-hover-color);
+}
+
+/* ---- MOBILE RESPONSIVENESS ---- */
+@media (max-width: 768px) {
+    .navbar {
+        padding: 0.5rem;
+    }
+    
+    .hero {
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+    
+    .hero-title {
+        font-size: 1.75rem;
+        line-height: 2rem;
+    }
+    
+    .hero-subtitle {
+        font-size: 1rem;
+        line-height: 1.5rem;
+    }
+    
+    .search-bar {
+        gap: 1rem;
+    }
+    
+    .search-bar input,
+    .search-bar select {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .featured-cars {
+        gap: 1rem;
+        padding: 0 1rem;
+    }
+    
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .car-listing {
+        margin-bottom: 1rem;
+        padding: 1rem;
+    }
+    
+    .car-listing h2 {
+        font-size: 1.125rem;
+        line-height: 1.5rem;
+    }
+    
+    .car-listing img {
+        height: 12rem;
+    }
+    
+    .car-listing .grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .button-group {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .button-group button {
+        width: 100%;
+        margin: 0;
+    }
+    
+    .book-button,
+    .login-button {
+        width: 100%;
+        margin-top: 0.75rem;
+    }
+}
+
+/* ---- TOUCH DEVICE OPTIMIZATIONS ---- */
+@media (hover: none) and (pointer: coarse) {
+    .btn-primary,
+    .btn-signup,
+    .book-button,
+    .login-button,
+    .edit-button,
+    .delete-button {
+        min-height: 44px; /* iOS recommended touch target size */
+        padding: 0.875rem 1.5rem;
+    }
+    
+    .navbar a,
+    .navbar button {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .car-listing {
+        cursor: pointer;
+    }
+    
+    .car-listing:hover {
+        transform: none; /* Disable hover effects on touch devices */
+    }
+    
+    .car-listing::before {
+        opacity: 0; /* Disable gradient line on touch devices */
+    }
+}
+
+/* ---- LANDSCAPE MOBILE OPTIMIZATIONS ---- */
+@media (max-width: 768px) and (orientation: landscape) {
+    .hero {
+        padding: 1rem;
+    }
+    
+    .search-bar {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+    }
+    
+    .search-bar > div:last-child {
+        grid-column: span 3;
+    }
+}
+
+/* ---- TABLET OPTIMIZATIONS ---- */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .hero {
+        padding: 2rem;
+    }
+    
+    .search-bar {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
+    
+    .search-bar > div:last-child {
+        grid-column: span 3;
+    }
+    
+    .featured-cars {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+}
+
+/* ---- ACCESSIBILITY IMPROVEMENTS ---- */
+@media (prefers-reduced-motion: reduce) {
+    .car-listing img,
+    .btn-primary,
+    .btn-signup,
+    .book-button,
+    .login-button {
+        transition: none;
+    }
+    
+    .car-listing:hover {
+        transform: none;
+    }
+    
+    .car-listing {
+        animation: none;
+    }
+    
+    .car-listing::before {
+        transition: none;
+    }
+    
+    .car-listing .bg-gradient-to-r::before {
+        transition: none;
+    }
+}
+
+/* ---- HIGH CONTRAST MODE SUPPORT ---- */
+@media (prefers-contrast: high) {
+    .car-listing {
+        border: 2px solid var(--primary-color);
+    }
+    
+    .btn-primary,
+    .btn-signup,
+    .book-button,
+    .login-button {
+        border: 2px solid currentColor;
+    }
+}
+
+/* ---- ENHANCED CAR LISTING ANIMATIONS ---- */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Only apply animation to car listings that are initially visible */
+.car-listing {
+    animation: fadeInUp 0.6s ease-out;
+    animation-fill-mode: both;
+    animation-iteration-count: 1;
+}
+
+/* Staggered animation delays for initial load */
+.car-listing:nth-child(1) { animation-delay: 0.1s; }
+.car-listing:nth-child(2) { animation-delay: 0.2s; }
+.car-listing:nth-child(3) { animation-delay: 0.3s; }
+.car-listing:nth-child(4) { animation-delay: 0.4s; }
+.car-listing:nth-child(5) { animation-delay: 0.5s; }
+.car-listing:nth-child(6) { animation-delay: 0.6s; }
+
+/* Prevent animation from running again on re-renders */
+.car-listing.animated {
+    animation: none;
+}
+
+/* Add a class for dynamically added car listings to prevent double animation */
+.car-listing.dynamic {
+    animation: none;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Disable animations on the available-cars page */
+.available-cars-page .car-listing {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+    transition: all 0.3s ease !important;
+}
+
+/* Available-cars page specific overrides (shadows now handled globally) */
+.available-cars-page .car-listing:hover {
+    /* Shadows now handled by global .car-listing:hover rule */
+}
+
+.available-cars-page .car-listing::before {
+    opacity: 0 !important;
+    transition: opacity 0.3s ease !important;
+}
+
+.available-cars-page .car-listing:hover::before {
+    opacity: 1 !important;
+}
+
+/* Available-cars page image effects (now handled globally) */
+.available-cars-page .car-listing img {
+    /* Image hover effects now handled by global .car-listing:hover img rule */
+}
+
+/* Enable price badge shimmer on available-cars page */
+.available-cars-page .car-listing .bg-gradient-to-r::before {
+    display: block !important;
+}
+
+/* Available-cars page button effects (now handled globally) */
+.available-cars-page .car-listing .book-button:hover,
+.available-cars-page .car-listing .login-button:hover,
+.available-cars-page .car-listing .edit-button:hover,
+.available-cars-page .car-listing .delete-button:hover {
+    /* Button hover effects now handled by global rules */
+}
+
+/* Available-cars page group effects (now handled globally) */
+.available-cars-page .car-listing.group:hover {
+    /* Group hover effects now handled by global rules */
+}
+
+/* Available-cars page transitions (now handled globally) */
+.available-cars-page .car-listing * {
+    /* Transitions now handled by global rules */
+}
+
+/* Available-cars page price badge effects (now handled globally) */
+.available-cars-page .car-listing .bg-gradient-to-r::before {
+    /* Price badge effects now handled by global rules */
+}
+
+/* Ensure admin dashboard car listings get the same enhanced shadows */
+.admin-sidebar + .main-content .car-listing:hover,
+.main-content .car-listing:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* ---- PRICE BADGE ENHANCEMENTS ---- */
+.car-listing .bg-gradient-to-r {
+    position: relative;
+    overflow: hidden;
+}
+
+.car-listing .bg-gradient-to-r::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    transition: transform 0.6s ease;
+    pointer-events: none;
+    z-index: 1;
+    transform: translateX(-100%);
+}
+
+.car-listing:hover .bg-gradient-to-r::before {
+    transform: translateX(100%);
+}
+
+/* Ensure price text is above the shimmer effect */
+.car-listing .bg-gradient-to-r > * {
+    position: relative;
+    z-index: 2;
+}
+
+/* Prevent text flickering in price badges */
+.car-listing .bg-gradient-to-r p {
+    text-shadow: 0 0 1px rgba(0, 0, 0, 0.1);
+    will-change: auto;
+    mix-blend-mode: normal;
+}
+
+/* Smooth the shimmer effect to reduce flickering */
+.car-listing .bg-gradient-to-r::before {
+    will-change: transform;
+    transform: translateX(-100%);
+    mix-blend-mode: overlay;
+}
+
+.car-listing:hover .bg-gradient-to-r::before {
+    transform: translateX(100%);
 }

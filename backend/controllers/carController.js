@@ -49,6 +49,8 @@ const getAvailableCars = async (req, res) => {
         const { 
             startDate, 
             endDate,
+            startTime,
+            endTime,
             priceMin,
             priceMax,
             yearMin,
@@ -61,17 +63,57 @@ const getAvailableCars = async (req, res) => {
             return res.status(400).json({ error: 'Start date and end date are required' });
         }
 
-        const start = new Date(startDate);
-        const end = new Date(endDate);
+        // Parse dates and times to create proper DateTime objects
+        let start, end;
+        
+        if (startTime && endTime) {
+            // Parse time strings (e.g., "2:30 PM", "Midnight", "Noon")
+            const parseTime = (timeStr) => {
+                if (timeStr.toLowerCase() === 'midnight') return '00:00';
+                if (timeStr.toLowerCase() === 'noon') return '12:00';
+                
+                // Convert 12-hour format to 24-hour format
+                const [time, period] = timeStr.split(' ');
+                const [hours, minutes] = time.split(':');
+                let hour = parseInt(hours, 10);
+                
+                if (period.toLowerCase() === 'pm' && hour !== 12) {
+                    hour += 12;
+                } else if (period.toLowerCase() === 'am' && hour === 12) {
+                    hour = 0;
+                }
+                
+                return `${hour.toString().padStart(2, '0')}:${minutes}`;
+            };
+
+            const startTimeStr = parseTime(startTime);
+            const endTimeStr = parseTime(endTime);
+            
+            // Create dates in local timezone to avoid timezone conversion issues
+            start = new Date(`${startDate}T${startTimeStr}:00`);
+            end = new Date(`${endDate}T${endTimeStr}:00`);
+            
+        } else {
+            // Fallback to just dates if no times provided
+            start = new Date(`${startDate}T00:00:00`);
+            end = new Date(`${endDate}T23:59:59`);
+        }
 
         if (isNaN(start) || isNaN(end) || start >= end) {
             return res.status(400).json({ error: 'Invalid date range. Start date must be before end date.' });
         }
 
-        // Find booked cars in the selected date range
+        // Find booked cars in the selected date range with proper time overlap detection
         const bookedCarIds = await Booking.find({
             $or: [
-                { startDate: { $lte: end }, endDate: { $gte: start } }, // Overlapping bookings
+                // Case 1: New booking starts during an existing booking
+                { startDate: { $lt: end, $gte: start } },
+                // Case 2: New booking ends during an existing booking  
+                { endDate: { $gt: start, $lte: end } },
+                // Case 3: New booking completely contains an existing booking
+                { startDate: { $gte: start }, endDate: { $lte: end } },
+                // Case 4: New booking is completely contained by an existing booking
+                { startDate: { $lte: start }, endDate: { $gte: end } }
             ],
         }).distinct('car');
 
@@ -99,8 +141,6 @@ const getAvailableCars = async (req, res) => {
         if (model) {
             filter.model = { $regex: model, $options: 'i' };
         }
-
-        // Removed verbose filter log
 
         // Fetch available cars with all filters applied
         const availableCars = await Car.find(filter);

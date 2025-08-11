@@ -36,5 +36,5 @@ export const isTokenExpired = () => {
 export const logout = (navigate) => {
     removeToken();
     localStorage.removeItem('user');
-    if (navigate) navigate('/login'); // Redirect to login page if navigate is passed
+    if (navigate) navigate('/'); // Redirect to home page if navigate is passed
 };
