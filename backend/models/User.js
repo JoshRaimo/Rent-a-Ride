@@ -13,6 +13,4 @@ const userSchema = new mongoose.Schema({
     role: { type: String, enum: ['user', 'admin'], default: 'user' }
 });
 
-userSchema.index({ email: 1 }, { collation: { locale: 'en', strength: 2 } });
-
 module.exports = mongoose.model('User', userSchema);

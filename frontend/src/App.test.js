@@ -9,12 +9,13 @@ jest.mock('react-router-dom', () => {
     Route: ({ element }) => element,
     Link: ({ children }) => React.createElement('a', null, children),
     useNavigate: () => () => {},
+    useLocation: () => ({ pathname: '/' }),
   };
 }, { virtual: true });
 
 // Mock heavy pages to avoid importing axios and other deps during this test
-jest.mock('./pages/Login', () => () => 'Login');
-jest.mock('./pages/Register', () => () => 'Register');
+jest.mock('./components/LoginModal', () => () => 'LoginModal');
+jest.mock('./components/RegisterModal', () => () => 'RegisterModal');
 jest.mock('./pages/HomePage', () => () => 'Home');
 jest.mock('./pages/ProfilePage', () => () => 'Profile');
 jest.mock('./pages/AdminDashboard', () => () => 'Admin');
@@ -24,6 +25,23 @@ jest.mock('./pages/CarManagement', () => () => 'CarManagement');
 jest.mock('./pages/UserManagement', () => () => 'UserManagement');
 jest.mock('./pages/BookingManagement', () => () => 'BookingManagement');
 jest.mock('./components/ProtectedRoute', () => () => 'ProtectedRoute');
+
+// Mock the AuthModalContext to avoid context issues
+jest.mock('./contexts/AuthModalContext', () => ({
+  AuthModalProvider: ({ children }) => children,
+  useAuthModal: () => ({
+    showLoginModal: false,
+    showRegisterModal: false,
+    openLoginModal: () => {},
+    openRegisterModal: () => {},
+    closeLoginModal: () => {},
+    closeRegisterModal: () => {},
+    getPreLoginLocation: () => null,
+    clearPreLoginLocation: () => {},
+    notifyBookingMade: () => {},
+    clearBookingNotification: () => {},
+  }),
+}));
 
 // Mock toastify to avoid side effects
 jest.mock('react-toastify', () => ({ ToastContainer: () => null, toast: { success: () => {} } }));
