@@ -170,6 +170,11 @@ const CarManagement = () => {
                 setCarId(response.data.carId);
             }
     
+            // Clear year range cache when car data changes
+            if (window.clearYearRangeCache) {
+                window.clearYearRangeCache();
+            }
+    
             resetForm();
             fetchCars();
         } catch (err) {
@@ -217,6 +222,12 @@ const CarManagement = () => {
                     Authorization: `Bearer ${localStorage.getItem('token')}`,
                 },
             });
+            
+            // Clear year range cache when car is deleted
+            if (window.clearYearRangeCache) {
+                window.clearYearRangeCache();
+            }
+            
             fetchCars();
             toast.success('Car deleted successfully');
         } catch (err) {

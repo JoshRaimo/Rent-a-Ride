@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -14,11 +14,18 @@ const AvailableCars = ({ isAuthenticated }) => {
     const { openLoginModal, bookingMade, clearBookingNotification } = useAuthModal();
     const EST_TIMEZONE = 'America/New_York';
     
+    // Use refs to prevent unnecessary re-renders
+    const initializationRef = useRef({ initialized: false, lastFilters: null });
+    const yearRangeRef = useRef(null);
+    const carsRef = useRef([]);
+    const filtersInitializedRef = useRef(false);
+    
     // Memoize date values to prevent infinite re-renders
     const now = useMemo(() => new Date(), []);
     const estNow = useMemo(() => toDate(now, { timeZone: EST_TIMEZONE }), [now]);
     const today = useMemo(() => new Date(estNow.getFullYear(), estNow.getMonth(), estNow.getDate()), [estNow]);
     const todayFormatted = useMemo(() => formatInTimeZone(today, EST_TIMEZONE, 'yyyy-MM-dd'), [today]);
+    const currentYear = useMemo(() => new Date().getFullYear(), []);
 
     const getNextHalfHour = useCallback(() => {
         const nextHalfHour = toDate(new Date(), { timeZone: EST_TIMEZONE });
@@ -38,21 +45,176 @@ const AvailableCars = ({ isAuthenticated }) => {
 
     const [cars, setCars] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [filterLoading, setFilterLoading] = useState(false);
     const [error, setError] = useState(null);
     const [hasInitialized, setHasInitialized] = useState(false);
+    
+    // Add state for makes and models
+    const [makes, setMakes] = useState([]);
+    const [models, setModels] = useState([]);
+    const [yearRange, setYearRange] = useState(null);
+    const [isYearRangeCached, setIsYearRangeCached] = useState(false);
+
+    // Cache key for year range data
+    const YEAR_RANGE_CACHE_KEY = 'rent-a-ride-year-range-cache';
+    const YEAR_RANGE_CACHE_TIMESTAMP_KEY = 'rent-a-ride-year-range-timestamp';
 
     const [filters, setFilters] = useState({
         startDate: location.state?.startDate || todayFormatted,
-        startTime: location.state?.startTime || getNextHalfHour().time,
-        endDate: location.state?.endDate || '',
-        endTime: location.state?.endTime || '',
+        startTime: location.state?.startTime || '12:00 PM',
+        endDate: location.state?.endDate || (() => {
+            const tomorrow = toDate(new Date(today), { timeZone: EST_TIMEZONE });
+            tomorrow.setDate(today.getDate() + 1);
+            return formatInTimeZone(tomorrow, EST_TIMEZONE, 'yyyy-MM-dd');
+        })(),
+        endTime: location.state?.endTime || 'Midnight',
         priceRange: [0, 1000],
-        yearRange: [1990, new Date().getFullYear()],
+        yearRange: null,
         make: '',
         model: '',
     });
 
-    // Handle date adjustment for late night times (same logic as homepage)
+    // Function to get cached year range
+    const getCachedYearRange = useCallback(() => {
+        try {
+            const cached = localStorage.getItem(YEAR_RANGE_CACHE_KEY);
+            const timestamp = localStorage.getItem(YEAR_RANGE_CACHE_TIMESTAMP_KEY);
+            
+            if (cached && timestamp) {
+                const parsedCache = JSON.parse(cached);
+                const cacheAge = Date.now() - parseInt(timestamp);
+                const cacheMaxAge = 24 * 60 * 60 * 1000; // 24 hours
+                
+                if (cacheAge < cacheMaxAge) {
+                    return parsedCache;
+                }
+            }
+        } catch (error) {
+            console.error('Error reading cached year range:', error);
+        }
+        return null;
+    }, []);
+
+    // Function to cache year range data
+    const cacheYearRange = useCallback((data) => {
+        try {
+            localStorage.setItem(YEAR_RANGE_CACHE_KEY, JSON.stringify(data));
+            localStorage.setItem(YEAR_RANGE_CACHE_TIMESTAMP_KEY, Date.now().toString());
+        } catch (error) {
+            console.error('Error caching year range:', error);
+        }
+    }, []);
+
+    // Function to check if we need to refresh year range
+    const shouldRefreshYearRange = useCallback((newData) => {
+        const cached = getCachedYearRange();
+        if (!cached) return true;
+        
+        return cached.minYear !== newData.minYear || cached.maxYear !== newData.maxYear;
+    }, [getCachedYearRange]);
+
+    // Function to clear year range cache
+    const clearYearRangeCache = useCallback(() => {
+        try {
+            localStorage.removeItem(YEAR_RANGE_CACHE_KEY);
+            localStorage.removeItem(YEAR_RANGE_CACHE_TIMESTAMP_KEY);
+        } catch (error) {
+            console.error('Error clearing year range cache:', error);
+        }
+    }, []);
+
+    // Function to refresh year range cache
+    const refreshYearRangeCache = useCallback(async () => {
+        try {
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/cars/year-range`);
+            const { minYear, maxYear, nextYear, currentYear, availableYears } = response.data;
+            
+            let adjustedMinYear = minYear;
+            let adjustedMaxYear = maxYear;
+            
+            if (minYear === maxYear) {
+                adjustedMinYear = Math.max(1990, minYear - 1);
+                adjustedMaxYear = Math.min(currentYear + 1, maxYear + 1);
+            }
+            
+            const newYearRange = { 
+                minYear: adjustedMinYear, 
+                maxYear: adjustedMaxYear, 
+                nextYear, 
+                currentYear, 
+                availableYears 
+            };
+            
+            if (shouldRefreshYearRange(newYearRange)) {
+                setYearRange(newYearRange);
+                setFilters(prev => ({
+                    ...prev,
+                    yearRange: [adjustedMinYear, adjustedMaxYear]
+                }));
+                cacheYearRange(newYearRange);
+                setIsYearRangeCached(false);
+            } else {
+                setIsYearRangeCached(true);
+            }
+        } catch (error) {
+            console.error('Error refreshing year range cache:', error);
+        }
+    }, [shouldRefreshYearRange, cacheYearRange]);
+
+    // Expose clearYearRangeCache globally
+    useEffect(() => {
+        window.clearYearRangeCache = clearYearRangeCache;
+        return () => {
+            delete window.clearYearRangeCache;
+        };
+    }, [clearYearRangeCache]);
+
+    // Set initial start time
+    useEffect(() => {
+        if (!location.state?.startTime) {
+            setFilters(prev => ({
+                ...prev,
+                startTime: getNextHalfHour().time
+            }));
+        }
+    }, [location.state?.startTime, getNextHalfHour]);
+
+    // Fetch models based on make from actual car data
+    useEffect(() => {
+        const fetchModels = async () => {
+            if (!filters.make) {
+                setModels([]);
+                return;
+            }
+            try {
+                const response = await axios.get(`${process.env.REACT_APP_API_URL}/cars/available`, {
+                    params: {
+                        startDate: filters.startDate || todayFormatted,
+                        endDate: filters.endDate || (() => {
+                            const tomorrow = toDate(new Date(today), { timeZone: EST_TIMEZONE });
+                            tomorrow.setDate(today.getDate() + 1);
+                            return formatInTimeZone(tomorrow, EST_TIMEZONE, 'yyyy-MM-dd');
+                        })(),
+                        startTime: filters.startTime || '12:00 PM',
+                        endTime: filters.endTime || 'Midnight',
+                        make: filters.make
+                    }
+                });
+                
+                const availableCars = response.data;
+                const carsOfMake = availableCars.filter(car => car.make === filters.make);
+                const uniqueModels = [...new Set(carsOfMake.map(car => car.model))].sort();
+                
+                setModels(uniqueModels.map(model => ({ modelId: model, name: model })));
+            } catch (error) {
+                console.error('Error fetching models:', error.message);
+                setModels([]);
+            }
+        };
+        fetchModels();
+    }, [filters.make, filters.startDate, filters.endDate, filters.startTime, filters.endTime, todayFormatted, today, EST_TIMEZONE]);
+
+    // Handle date adjustment for late night times
     useEffect(() => {
         if (!location.state?.startDate && !location.state?.endDate) {
             const nextHalfHour = new Date();
@@ -60,17 +222,14 @@ const AvailableCars = ({ isAuthenticated }) => {
             const additionalMinutes = currentMinutes % 30 === 0 ? 30 : 0;
             nextHalfHour.setMinutes(Math.ceil(currentMinutes / 30) * 30 + additionalMinutes, 0, 0);
 
-            // If current time will roll over to midnight or is after 11:30 PM
             if ((nextHalfHour.getHours() === 0 && nextHalfHour.getMinutes() === 0) || 
                 (now.getHours() === 23 && now.getMinutes() >= 30)) {
                 
-                // Set start date to tomorrow (next day)
                 const nextDay = new Date();
                 nextDay.setDate(now.getDate() + 1);
                 nextDay.setHours(0, 0, 0, 0);
                 const nextDayFormatted = nextDay.toISOString().split('T')[0];
                 
-                // Set end date to the day after tomorrow
                 const dayAfterNext = new Date(nextDay);
                 dayAfterNext.setDate(nextDay.getDate() + 1);
                 const dayAfterNextFormatted = dayAfterNext.toISOString().split('T')[0];
@@ -81,7 +240,6 @@ const AvailableCars = ({ isAuthenticated }) => {
                     endDate: dayAfterNextFormatted,
                 }));
             } else {
-                // Set default end date to tomorrow if not already set
                 const tomorrow = new Date(today);
                 tomorrow.setDate(today.getDate() + 1);
                 const tomorrowFormatted = tomorrow.toISOString().split('T')[0];
@@ -92,20 +250,28 @@ const AvailableCars = ({ isAuthenticated }) => {
                 }));
             }
         }
-    }, [location.state]); // Only depend on location.state changes
+    }, [location.state, now, today]);
 
-    const currentYear = useMemo(() => new Date().getFullYear(), []);
-    const minYear = 1990;
     const maxPrice = 1000;
 
-    // Memoize the fetch function to prevent recreation on every render
+    // Define fetchAvailableCars function before it's used in useEffect hooks
     const fetchAvailableCars = useCallback(async () => {
         if (!filters.startDate || !filters.endDate) {
             setError('Please select a start and end date.');
             return;
         }
 
-        setLoading(true);
+        // Prevent multiple simultaneous requests
+        if (filterLoading || (loading && !hasInitialized)) {
+            return;
+        }
+
+        // Use filter loading state for filter operations to prevent main loading flicker
+        if (hasInitialized) {
+            setFilterLoading(true);
+        } else {
+            setLoading(true);
+        }
         setError(null);
 
         try {
@@ -116,8 +282,8 @@ const AvailableCars = ({ isAuthenticated }) => {
                 endTime: filters.endTime,
                 priceMin: filters.priceRange[0],
                 priceMax: filters.priceRange[1],
-                yearMin: filters.yearRange[0],
-                yearMax: filters.yearRange[1],
+                yearMin: filters.yearRange ? filters.yearRange[0] : undefined,
+                yearMax: filters.yearRange ? filters.yearRange[1] : undefined,
                 make: filters.make?.trim() || undefined,
                 model: filters.model?.trim() || undefined,
             };
@@ -126,26 +292,182 @@ const AvailableCars = ({ isAuthenticated }) => {
                 params: cleanedFilters
             });
 
-            setCars(response.data);
+            // Use ref to prevent circular dependency and only update if data actually changed
+            const currentCars = carsRef.current;
+            const newCars = response.data || [];
+            
+            // Check if data actually changed to prevent unnecessary updates
+            const hasChanged = !currentCars || 
+                currentCars.length !== newCars.length ||
+                JSON.stringify(currentCars.map(c => c.carId).sort()) !== JSON.stringify(newCars.map(c => c.carId).sort());
+            
+            if (hasChanged) {
+                carsRef.current = newCars;
+                setCars(newCars);
+            }
+            
             setHasInitialized(true);
         } catch (err) {
             console.error('Error fetching available cars:', err);
             setError('Failed to load available cars.');
         } finally {
-            setLoading(false);
-        }
-    }, [filters]);
-
-    // Single useEffect for all data fetching logic
-    useEffect(() => {
-        // Only fetch if we have the required filter values
-        if (filters.startDate && filters.endDate && filters.startTime && filters.endTime) {
-            // Initial load or filter change
-            if (!hasInitialized || filters.startDate !== location.state?.startDate || filters.endDate !== location.state?.endDate) {
-                fetchAvailableCars();
+            if (hasInitialized) {
+                setFilterLoading(false);
+            } else {
+                setLoading(false);
             }
         }
-    }, [filters.startDate, filters.endDate, filters.startTime, filters.endTime, hasInitialized, fetchAvailableCars, location.state]);
+    }, [filters, loading, hasInitialized, filterLoading]); // Removed cars dependency
+
+    // Consolidated initialization effect - prevents cascading re-renders
+    useEffect(() => {
+        const initializePage = async () => {
+            if (initializationRef.current.initialized) return;
+            initializationRef.current.initialized = true;
+            
+            try {
+                setLoading(true);
+                
+                // First, try to load from cache for instant display
+                const cachedYearRange = getCachedYearRange();
+                if (cachedYearRange) {
+                    yearRangeRef.current = cachedYearRange;
+                    setYearRange(cachedYearRange);
+                    setFilters(prev => ({
+                        ...prev,
+                        yearRange: [cachedYearRange.minYear, cachedYearRange.maxYear]
+                    }));
+                    setIsYearRangeCached(true);
+                }
+                
+                // Fetch all initial data in parallel
+                const [yearRangeResponse, makesResponse, initialCarsResponse] = await Promise.all([
+                    axios.get(`${process.env.REACT_APP_API_URL}/cars/year-range`),
+                    axios.get(`${process.env.REACT_APP_API_URL}/cars/available`, {
+                        params: {
+                            startDate: todayFormatted,
+                            endDate: (() => {
+                                const tomorrow = toDate(new Date(today), { timeZone: EST_TIMEZONE });
+                                tomorrow.setDate(today.getDate() + 1);
+                                return formatInTimeZone(tomorrow, EST_TIMEZONE, 'yyyy-MM-dd');
+                            })(),
+                            startTime: '12:00 PM',
+                            endTime: 'Midnight'
+                        }
+                    }),
+                    axios.get(`${process.env.REACT_APP_API_URL}/cars/available`, {
+                        params: {
+                            startDate: todayFormatted,
+                            endDate: (() => {
+                                const tomorrow = toDate(new Date(today), { timeZone: EST_TIMEZONE });
+                                tomorrow.setDate(today.getDate() + 1);
+                                return formatInTimeZone(tomorrow, EST_TIMEZONE, 'yyyy-MM-dd');
+                            })(),
+                            startTime: '12:00 PM',
+                            endTime: 'Midnight'
+                        }
+                    })
+                ]);
+                
+                // Process year range data
+                const { minYear, maxYear, nextYear, currentYear, availableYears } = yearRangeResponse.data;
+                let adjustedMinYear = minYear;
+                let adjustedMaxYear = maxYear;
+                
+                if (minYear === maxYear) {
+                    adjustedMinYear = Math.max(1990, minYear - 1);
+                    adjustedMaxYear = Math.min(currentYear + 1, maxYear + 1);
+                }
+                
+                const newYearRange = { 
+                    minYear: adjustedMinYear, 
+                    maxYear: adjustedMaxYear, 
+                    nextYear, 
+                    currentYear, 
+                    availableYears 
+                };
+                
+                // Process makes data
+                const availableCars = makesResponse.data;
+                const uniqueMakes = [...new Set(availableCars.map(car => car.make))].sort();
+                
+                // Batch all state updates to prevent flickering
+                if (!cachedYearRange || 
+                    cachedYearRange.minYear !== adjustedMinYear || 
+                    cachedYearRange.maxYear !== adjustedMaxYear) {
+                    
+                    yearRangeRef.current = newYearRange;
+                    setYearRange(newYearRange);
+                    setFilters(prev => ({
+                        ...prev,
+                        yearRange: [adjustedMinYear, adjustedMaxYear]
+                    }));
+                    cacheYearRange(newYearRange);
+                    setIsYearRangeCached(false);
+                } else {
+                    setIsYearRangeCached(true);
+                }
+                
+                setMakes(uniqueMakes.map(make => ({ makeId: make, name: make })));
+                carsRef.current = initialCarsResponse.data;
+                setCars(initialCarsResponse.data);
+                
+                // Mark filters as initialized to prevent unnecessary filter change detection
+                filtersInitializedRef.current = true;
+                
+            } catch (error) {
+                console.error('Error during page initialization:', error);
+                setError('Failed to initialize page data.');
+            } finally {
+                setLoading(false);
+                setHasInitialized(true);
+            }
+        };
+        
+        if (!hasInitialized) {
+            initializePage();
+        }
+    }, [hasInitialized, getCachedYearRange, cacheYearRange, todayFormatted, today, EST_TIMEZONE]);
+    
+    // Watch for filter changes and auto-search - optimized to prevent flickering
+    useEffect(() => {
+        // Only watch for filter changes after everything is properly initialized
+        if (hasInitialized && filtersInitializedRef.current && filters.startDate && filters.endDate && filters.startTime && filters.endTime) {
+            const timeoutId = setTimeout(() => {
+                // More precise filter change detection - only trigger on meaningful changes
+                const hasActiveFilters = filters.make || filters.model || 
+                    filters.priceRange[0] !== 0 || filters.priceRange[1] !== maxPrice ||
+                    (filters.yearRange && yearRange && (
+                        filters.yearRange[0] !== yearRange.minYear || 
+                        filters.yearRange[1] !== yearRange.maxYear
+                    ));
+                
+                // Only fetch if we have meaningful filter changes and we're not already loading
+                if (hasActiveFilters && !filterLoading && !loading) {
+                    // Use a more stable approach - only fetch if filters have actually changed significantly
+                    const currentFilters = JSON.stringify({
+                        make: filters.make,
+                        model: filters.model,
+                        priceRange: filters.priceRange,
+                        yearRange: filters.yearRange
+                    });
+                    
+                    // Store current filters in ref to compare and prevent duplicate calls
+                    if (initializationRef.current && initializationRef.current.lastFilters !== currentFilters) {
+                        initializationRef.current.lastFilters = currentFilters;
+                        // Add a small delay to ensure filters are stable
+                        setTimeout(() => {
+                            if (!filterLoading && !loading) {
+                                fetchAvailableCars();
+                            }
+                        }, 100);
+                    }
+                }
+            }, 1500); // Increased debounce time to reduce rapid API calls
+            
+            return () => clearTimeout(timeoutId);
+        }
+    }, [filters.priceRange, filters.yearRange, filters.make, filters.model, hasInitialized, fetchAvailableCars, maxPrice, yearRange, filterLoading, loading]);
 
     // Handle booking notifications
     useEffect(() => {
@@ -155,17 +477,28 @@ const AvailableCars = ({ isAuthenticated }) => {
         }
     }, [bookingMade, hasInitialized, fetchAvailableCars, clearBookingNotification]);
 
-    // Handle window focus (user returning to page)
+    // Handle window focus
     useEffect(() => {
         const handleFocus = () => {
-            if (hasInitialized && filters.startDate && filters.endDate) {
+            if (hasInitialized && filters.startDate && filters.endDate && !filterLoading) {
                 fetchAvailableCars();
+            }
+            
+            // Check if year range cache needs refresh (every 6 hours)
+            const cached = getCachedYearRange();
+            if (cached) {
+                const cacheAge = Date.now() - parseInt(localStorage.getItem(YEAR_RANGE_CACHE_TIMESTAMP_KEY) || '0');
+                const refreshThreshold = 6 * 60 * 60 * 1000; // 6 hours
+                
+                if (cacheAge > refreshThreshold) {
+                    refreshYearRangeCache();
+                }
             }
         };
 
         window.addEventListener('focus', handleFocus);
         return () => window.removeEventListener('focus', handleFocus);
-    }, [hasInitialized, filters.startDate, filters.endDate, fetchAvailableCars]);
+    }, [hasInitialized, filters.startDate, filters.endDate, fetchAvailableCars, getCachedYearRange, refreshYearRangeCache, filterLoading]);
 
     const handleBookNow = useCallback((car) => {
         navigate('/book-car', { 
@@ -179,24 +512,29 @@ const AvailableCars = ({ isAuthenticated }) => {
         });
     }, [navigate, filters.startDate, filters.startTime, filters.endDate, filters.endTime]);
 
-    // Memoize the car data separately from authentication-dependent props
+    // Generate stable keys for car listings to prevent unnecessary re-renders
+    const generateCarKey = useCallback((car) => {
+        return `${car.carId}-${car.make}-${car.model}-${car.year}-${car.price}`;
+    }, []);
+
+    // Memoize the car data with better dependency tracking
     const carData = useMemo(() => {
         if (loading || !cars.length) return null;
         return cars;
     }, [cars, loading]);
 
-    // Memoize the car listings with stable props - separate authentication logic
+    // Memoize the car listings with better stability - prevent unnecessary re-renders
     const carListings = useMemo(() => {
         if (!carData) return null;
         
-        return carData.map((car, idx) => {
-            // Create stable props that don't change with authentication (excluding key)
+        return carData.map((car) => {
+            // Create stable props object to prevent unnecessary re-renders
             const stableProps = {
                 car,
                 showEditDeleteButtons: false,
+                key: generateCarKey(car),
             };
 
-            // Add authentication-dependent props separately
             if (isAuthenticated) {
                 stableProps.onBookNow = handleBookNow;
                 stableProps.onLogin = null;
@@ -205,28 +543,26 @@ const AvailableCars = ({ isAuthenticated }) => {
                 stableProps.onLogin = () => openLoginModal(location.pathname);
             }
 
-            // Use a stable key that doesn't change with authentication
             return (
                 <CarListing
-                    key={`${car.carId}-${car.make}-${car.model}-${car.year}`}
+                    key={stableProps.key}
                     {...stableProps}
                 />
             );
         });
-    }, [carData, isAuthenticated, openLoginModal, handleBookNow, location.pathname]);
+    }, [carData, isAuthenticated, handleBookNow, openLoginModal, location.pathname, generateCarKey]);
 
-    const handleInputChange = (field, value) => {
+    const handleInputChange = useCallback((field, value) => {
         setFilters(prevFilters => ({
             ...prevFilters,
             [field]: value === '' ? '' : value
         }));
-    };
+    }, []);
 
-    // Generate time options in 30-minute intervals with Noon and Midnight labels
-    const generateTimeOptions = (isStartTime = false) => {
+    // Generate time options in 30-minute intervals
+    const generateTimeOptions = useCallback((isStartTime = false) => {
         const options = [];
         const isToday = filters.startDate === todayFormatted;
-        const nextHalfHourInfo = getNextHalfHour();
 
         for (let hour = 0; hour < 24; hour++) {
             for (let minute = 0; minute < 60; minute += 30) {
@@ -237,7 +573,6 @@ const AvailableCars = ({ isAuthenticated }) => {
                 if (label === '12:00 AM') label = 'Midnight';
                 if (label === '12:00 PM') label = 'Noon';
 
-                // Only filter times for start time on today's date
                 if (!isStartTime || !isToday || 
                     (hour > estNow.getHours() || 
                     (hour === estNow.getHours() && minute >= Math.ceil(estNow.getMinutes() / 30) * 30))) {
@@ -246,32 +581,33 @@ const AvailableCars = ({ isAuthenticated }) => {
             }
         }
         return options;
-    };
+    }, [filters.startDate, todayFormatted, estNow]);
 
-    // Filter time options based on selected date
-    const getTimeOptions = () => {
-        return generateTimeOptions();
-    };
-
-    const handleRangeChange = (field, values) => {
+    const handleRangeChange = useCallback((field, values) => {
         setFilters(prev => ({
             ...prev,
             [field]: values
         }));
-    };
+    }, []);
 
-    const handleFilterReset = () => {
+    const handleFilterReset = useCallback(() => {
+        // Batch all filter resets into a single state update to prevent flickering
         setFilters(prev => ({
-            startDate: prev.startDate,
-            startTime: prev.startTime,
-            endDate: prev.endDate,
-            endTime: prev.endTime,
+            ...prev,
             priceRange: [0, maxPrice],
-            yearRange: [minYear, currentYear],
+            yearRange: yearRange ? [yearRange.minYear, yearRange.maxYear] : null,
             make: '',
             model: '',
         }));
-    };
+        
+        // Clear models in a separate update to avoid cascading effects
+        setModels([]);
+        
+        // Clear the last filters reference to allow fresh filtering
+        if (initializationRef.current) {
+            initializationRef.current.lastFilters = null;
+        }
+    }, [maxPrice, yearRange]);
 
     return (
         <div className="container mx-auto mt-6 md:mt-10 p-3 md:p-6 available-cars-page">
@@ -389,75 +725,129 @@ const AvailableCars = ({ isAuthenticated }) => {
                     {/* Year Range */}
                     <div className="mb-6">
                         <h4 className="font-medium mb-2">Year Range</h4>
-                        <div className="px-2 py-4">
-                            <div className="flex justify-between mb-2">
-                                <span className="text-sm text-gray-600">{filters.yearRange[0]}</span>
-                                <span className="text-sm text-gray-600">{filters.yearRange[1]}</span>
-                            </div>
-                            <Range
-                                step={1}
-                                min={minYear}
-                                max={currentYear}
-                                values={filters.yearRange}
-                                onChange={(values) => handleRangeChange('yearRange', values)}
-                                renderTrack={({ props, children }) => (
-                                    <div
-                                        {...props}
-                                        className="h-1 w-full bg-gray-200 rounded-full"
-                                        style={{
-                                            ...props.style,
-                                        }}
-                                    >
+                        {yearRange ? (
+                            <div className="px-2 py-4">
+                                <div className="flex justify-between mb-2">
+                                    <span className="text-sm text-gray-600">{filters.yearRange ? filters.yearRange[0] : yearRange.minYear}</span>
+                                    <span className="text-sm text-gray-600">{filters.yearRange ? filters.yearRange[1] : yearRange.maxYear}</span>
+                                </div>
+                                <Range
+                                    step={1}
+                                    min={yearRange.minYear}
+                                    max={yearRange.maxYear}
+                                    values={filters.yearRange || [yearRange.minYear, yearRange.maxYear]}
+                                    onChange={(values) => handleRangeChange('yearRange', values)}
+                                    renderTrack={({ props, children }) => (
                                         <div
-                                            className="h-full bg-primary-color rounded-full"
+                                            {...props}
+                                            className="h-1 w-full bg-gray-200 rounded-full"
                                             style={{
-                                                width: `${(filters.yearRange[1] - filters.yearRange[0]) / (currentYear - minYear) * 100}%`,
-                                                left: `${(filters.yearRange[0] - minYear) / (currentYear - minYear) * 100}%`,
-                                                position: 'absolute',
+                                                ...props.style,
+                                            }}
+                                        >
+                                            <div
+                                                className="h-full bg-primary-color rounded-full"
+                                                style={{
+                                                    width: `${(filters.yearRange ? filters.yearRange[1] : yearRange.maxYear) - (filters.yearRange ? filters.yearRange[0] : yearRange.minYear) / (yearRange.maxYear - yearRange.minYear) * 100}%`,
+                                                    left: `${(filters.yearRange ? filters.yearRange[0] : yearRange.minYear) - yearRange.minYear / (yearRange.maxYear - yearRange.minYear) * 100}%`,
+                                                    position: 'absolute',
+                                                }}
+                                            />
+                                            {children}
+                                        </div>
+                                    )}
+                                    renderThumb={({ props, index }) => (
+                                        <div
+                                            key={`year-thumb-${index}`}
+                                            {...props}
+                                            className="h-4 w-4 rounded-full bg-white border-2 border-primary-color focus:outline-none"
+                                            style={{
+                                                ...props.style,
+                                                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                                             }}
                                         />
-                                        {children}
-                                    </div>
-                                )}
-                                renderThumb={({ props, index }) => (
-                                    <div
-                                        key={`year-thumb-${index}`}
-                                        {...props}
-                                        className="h-4 w-4 rounded-full bg-white border-2 border-primary-color focus:outline-none"
-                                        style={{
-                                            ...props.style,
-                                            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                                        }}
-                                    />
-                                )}
-                            />
-                        </div>
+                                    )}
+                                />
+                            </div>
+                        ) : null}
                     </div>
 
                     {/* Make and Model */}
                     <div className="mb-4">
-                        <input
-                            type="text"
-                            placeholder="Make"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md mb-2"
-                            value={filters.make}
-                            onChange={(e) => handleInputChange('make', e.target.value)}
-                        />
-                        <input
-                            type="text"
-                            placeholder="Model"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                            value={filters.model}
-                            onChange={(e) => handleInputChange('model', e.target.value)}
-                        />
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Make</label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                value={filters.make}
+                                onChange={(e) => {
+                                    const input = e.target.value;
+                                    const validMakes = makes.map(m => m.name.toLowerCase());
+                                    const isValidInput = validMakes.some(make => 
+                                        make.startsWith(input.toLowerCase())
+                                    );
+                                    
+                                    if (isValidInput || input === '') {
+                                        handleInputChange('make', input);
+                                        setFilters(prev => ({ ...prev, model: '' }));
+                                        setModels([]);
+                                    }
+                                }}
+                                placeholder="Select make"
+                                list="make-options"
+                            />
+                            <datalist id="make-options">
+                                {makes.map(make => (
+                                    <option key={make.makeId} value={make.name} />
+                                ))}
+                            </datalist>
+                        </div>
+                        <label className="block text-sm font-medium text-gray-700 mt-2 mb-1">Model</label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                value={filters.model}
+                                onChange={(e) => {
+                                    const input = e.target.value;
+                                    if (filters.make) {
+                                        const validModels = models.map(m => m.name.toLowerCase());
+                                        const isValidInput = validModels.some(model => 
+                                            model.startsWith(input.toLowerCase())
+                                        );
+                                        
+                                        if (isValidInput || input === '') {
+                                            handleInputChange('model', input);
+                                        }
+                                    }
+                                }}
+                                placeholder="Select model"
+                                disabled={!filters.make}
+                                list="model-options"
+                            />
+                            <datalist id="model-options">
+                                {models.map(model => (
+                                    <option key={model.modelId} value={model.name} />
+                                ))}
+                            </datalist>
+                        </div>
                     </div>
 
                     {/* Reset Filters Button */}
                     <button
                         onClick={handleFilterReset}
-                        className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-md transition duration-200"
+                        className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-md transition duration-200 mb-3"
                     >
                         Reset Filters
+                    </button>
+                    
+                    {/* Search Button */}
+                    <button
+                        onClick={fetchAvailableCars}
+                        disabled={filterLoading}
+                        className="w-full bg-primary-color hover:bg-primary-color-dark text-white font-semibold py-2 px-4 rounded-md transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {filterLoading ? 'Searching...' : 'Search Cars'}
                     </button>
                 </div>
 
@@ -472,16 +862,39 @@ const AvailableCars = ({ isAuthenticated }) => {
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-color"></div>
                         </div>
                     ) : (
-                        <div className="featured-cars grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 max-w-7xl mx-auto">
-                            {carListings}
-                            {carListings === null && (
-                                <div className="col-span-full text-center py-12">
-                                    <p className="text-gray-500 text-lg">
-                                        No cars available for the selected dates and times.
-                                    </p>
-                                    <p className="text-gray-400 text-sm mt-2">
-                                        Try adjusting your filters or selecting different dates.
-                                    </p>
+                        <div className="relative">
+                            {/* Filter Loading Overlay - positioned absolutely to prevent layout shifts */}
+                            {filterLoading && (
+                                <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10 rounded-lg pointer-events-none">
+                                    <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg shadow-lg">
+                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-color"></div>
+                                        <span className="text-sm text-gray-600 font-medium">Updating results...</span>
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Stable car grid container to prevent flickering */}
+                            <div className="featured-cars grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 max-w-7xl mx-auto min-h-[400px]">
+                                {carListings}
+                                {carListings === null && !filterLoading && (
+                                    <div className="col-span-full text-center py-12">
+                                        <p className="text-gray-500 text-lg">
+                                            No cars available for the selected dates and times.
+                                        </p>
+                                        <p className="text-gray-400 text-sm mt-2">
+                                            Try adjusting your filters or selecting different dates.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {/* Loading indicator that doesn't cause layout shifts */}
+                            {filterLoading && (
+                                <div className="absolute top-4 right-4 bg-white px-3 py-2 rounded-lg shadow-lg z-20">
+                                    <div className="flex items-center space-x-2">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-color"></div>
+                                        <span className="text-xs text-gray-600">Updating...</span>
+                                    </div>
                                 </div>
                             )}
                         </div>

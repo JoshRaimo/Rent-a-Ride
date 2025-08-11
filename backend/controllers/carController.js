@@ -163,6 +163,43 @@ const getAllMakes = async (req, res) => {
     }
 };
 
+// Get year range (oldest and newest car years)
+const getYearRange = async (req, res) => {
+    try {
+        // Get all unique years where cars exist, sorted from oldest to newest
+        const years = await Car.distinct('year').sort({ year: 1 });
+        
+        if (years.length === 0) {
+            // No cars exist, return fallback values
+            const currentYear = new Date().getFullYear();
+            const nextYear = currentYear + 1;
+            return res.status(200).json({
+                minYear: currentYear,
+                maxYear: currentYear,
+                nextYear: nextYear,
+                currentYear: currentYear,
+                availableYears: [currentYear]
+            });
+        }
+        
+        const minYear = years[0]; // Oldest year
+        const maxYear = years[years.length - 1]; // Newest year
+        const currentYear = new Date().getFullYear();
+        const nextYear = currentYear + 1;
+        
+        res.status(200).json({
+            minYear,
+            maxYear,
+            nextYear,
+            currentYear,
+            availableYears: years // Array of all years where cars exist
+        });
+    } catch (err) {
+        console.error('Error fetching year range:', err.message);
+        res.status(500).json({ error: 'Failed to fetch year range', details: err.message });
+    }
+};
+
 // Add a new car
 const addCar = async (req, res) => {
     const errors = validationResult(req);
@@ -255,4 +292,4 @@ const deleteCar = async (req, res) => {
     }
 };
 
-module.exports = { getAllCars, getAvailableCars, getAllMakes, addCar, updateCar, deleteCar };
+module.exports = { getAllCars, getAvailableCars, getAllMakes, getYearRange, addCar, updateCar, deleteCar };

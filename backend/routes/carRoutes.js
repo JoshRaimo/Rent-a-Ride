@@ -1,5 +1,5 @@
 const express = require('express');
-const { getAllCars, addCar, updateCar, deleteCar, getAvailableCars } = require('../controllers/carController');
+const { getAllCars, addCar, updateCar, deleteCar, getAvailableCars, getYearRange } = require('../controllers/carController');
 const { validateCarRequest } = require('../middleware/carValidator');
 const router = express.Router();
 
@@ -8,6 +8,9 @@ router.get('/', getAllCars);
 
 // Fetch available cars based on date range
 router.get('/available', getAvailableCars);
+
+// Get year range (oldest and newest car years)
+router.get('/year-range', getYearRange);
 
 // Add a new car
 router.post('/', validateCarRequest, addCar);
