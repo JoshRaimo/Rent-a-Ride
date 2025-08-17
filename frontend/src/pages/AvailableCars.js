@@ -19,6 +19,7 @@ const AvailableCars = ({ isAuthenticated }) => {
     const yearRangeRef = useRef(null);
     const carsRef = useRef([]);
     const filtersInitializedRef = useRef(false);
+    const resetInProgressRef = useRef(false);
     
     // Memoize date values to prevent infinite re-renders
     const now = useMemo(() => new Date(), []);
@@ -46,6 +47,7 @@ const AvailableCars = ({ isAuthenticated }) => {
     const [cars, setCars] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filterLoading, setFilterLoading] = useState(false);
+    const [resetLoading, setResetLoading] = useState(false);
     const [error, setError] = useState(null);
     const [hasInitialized, setHasInitialized] = useState(false);
     
@@ -58,6 +60,10 @@ const AvailableCars = ({ isAuthenticated }) => {
     // Cache key for year range data
     const YEAR_RANGE_CACHE_KEY = 'rent-a-ride-year-range-cache';
     const YEAR_RANGE_CACHE_TIMESTAMP_KEY = 'rent-a-ride-year-range-timestamp';
+    
+    // Cache key for price range data
+    const PRICE_RANGE_CACHE_KEY = 'rent-a-ride-price-range-cache';
+    const PRICE_RANGE_CACHE_TIMESTAMP_KEY = 'rent-a-ride-price-range-timestamp';
 
     const [filters, setFilters] = useState({
         startDate: location.state?.startDate || todayFormatted,
@@ -161,13 +167,70 @@ const AvailableCars = ({ isAuthenticated }) => {
         }
     }, [shouldRefreshYearRange, cacheYearRange]);
 
-    // Expose clearYearRangeCache globally
+    // Price range cache functions
+    const getCachedPriceRange = useCallback(() => {
+        try {
+            const cached = localStorage.getItem(PRICE_RANGE_CACHE_KEY);
+            const timestamp = localStorage.getItem(PRICE_RANGE_CACHE_TIMESTAMP_KEY);
+            
+            if (!cached || !timestamp) return null;
+            
+            // Cache valid for 1 hour (prices change less frequently than years)
+            const cacheAge = Date.now() - parseInt(timestamp);
+            const maxAge = 60 * 60 * 1000; // 1 hour
+            
+            if (cacheAge > maxAge) {
+                clearPriceRangeCache();
+                return null;
+            }
+            
+            return JSON.parse(cached);
+        } catch (error) {
+            console.error('Error reading price range cache:', error);
+            return null;
+        }
+    }, []);
+
+    const cachePriceRange = useCallback((data) => {
+        try {
+            localStorage.setItem(PRICE_RANGE_CACHE_KEY, JSON.stringify(data));
+            localStorage.setItem(PRICE_RANGE_CACHE_TIMESTAMP_KEY, Date.now().toString());
+        } catch (error) {
+            console.error('Error caching price range:', error);
+        }
+    }, []);
+
+    const clearPriceRangeCache = useCallback(() => {
+        try {
+            localStorage.removeItem(PRICE_RANGE_CACHE_KEY);
+            localStorage.removeItem(PRICE_RANGE_CACHE_TIMESTAMP_KEY);
+        } catch (error) {
+            console.error('Error clearing price range cache:', error);
+        }
+    }, []);
+
+    const refreshPriceRangeCache = useCallback(async () => {
+        try {
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/cars/price-range`);
+            const data = response.data;
+            cachePriceRange(data);
+            setPriceRange(data);
+            return data;
+        } catch (error) {
+            console.error('Error refreshing price range cache:', error);
+            return null;
+        }
+    }, [cachePriceRange]);
+
+    // Expose cache clearing functions globally
     useEffect(() => {
         window.clearYearRangeCache = clearYearRangeCache;
+        window.clearPriceRangeCache = clearPriceRangeCache;
         return () => {
             delete window.clearYearRangeCache;
+            delete window.clearPriceRangeCache;
         };
-    }, [clearYearRangeCache]);
+    }, [clearYearRangeCache, clearPriceRangeCache]);
 
     // Set initial start time
     useEffect(() => {
@@ -252,7 +315,8 @@ const AvailableCars = ({ isAuthenticated }) => {
         }
     }, [location.state, now, today]);
 
-    const maxPrice = 1000;
+    // Dynamic price range state
+    const [priceRange, setPriceRange] = useState({ minPrice: 0, maxPrice: 1000 }); // Default fallback values
 
     // Define fetchAvailableCars function before it's used in useEffect hooks
     const fetchAvailableCars = useCallback(async () => {
@@ -261,14 +325,15 @@ const AvailableCars = ({ isAuthenticated }) => {
             return;
         }
 
-        // Prevent multiple simultaneous requests
-        if (filterLoading || (loading && !hasInitialized)) {
+        // Prevent multiple simultaneous requests during initial load
+        if (loading && !hasInitialized) {
             return;
         }
 
         // Use filter loading state for filter operations to prevent main loading flicker
         if (hasInitialized) {
-            setFilterLoading(true);
+            // Remove filter loading state for seamless transitions
+            // setFilterLoading(true);
         } else {
             setLoading(true);
         }
@@ -312,12 +377,13 @@ const AvailableCars = ({ isAuthenticated }) => {
             setError('Failed to load available cars.');
         } finally {
             if (hasInitialized) {
-                setFilterLoading(false);
+                // Remove filter loading state for seamless transitions
+                // setFilterLoading(false);
             } else {
                 setLoading(false);
             }
         }
-    }, [filters, loading, hasInitialized, filterLoading]); // Removed cars dependency
+    }, [filters, loading, hasInitialized]); // Removed cars dependency
 
     // Consolidated initialization effect - prevents cascading re-renders
     useEffect(() => {
@@ -330,6 +396,8 @@ const AvailableCars = ({ isAuthenticated }) => {
                 
                 // First, try to load from cache for instant display
                 const cachedYearRange = getCachedYearRange();
+                const cachedPriceRange = getCachedPriceRange();
+                
                 if (cachedYearRange) {
                     yearRangeRef.current = cachedYearRange;
                     setYearRange(cachedYearRange);
@@ -340,9 +408,18 @@ const AvailableCars = ({ isAuthenticated }) => {
                     setIsYearRangeCached(true);
                 }
                 
+                if (cachedPriceRange) {
+                    setPriceRange(cachedPriceRange);
+                    setFilters(prev => ({
+                        ...prev,
+                        priceRange: [0, cachedPriceRange.maxPrice]
+                    }));
+                }
+                
                 // Fetch all initial data in parallel
-                const [yearRangeResponse, makesResponse, initialCarsResponse] = await Promise.all([
+                const [yearRangeResponse, priceRangeResponse, makesResponse, initialCarsResponse] = await Promise.all([
                     axios.get(`${process.env.REACT_APP_API_URL}/cars/year-range`),
+                    axios.get(`${process.env.REACT_APP_API_URL}/cars/price-range`),
                     axios.get(`${process.env.REACT_APP_API_URL}/cars/available`, {
                         params: {
                             startDate: todayFormatted,
@@ -408,6 +485,20 @@ const AvailableCars = ({ isAuthenticated }) => {
                     setIsYearRangeCached(true);
                 }
                 
+                // Process price range data
+                const newPriceRange = priceRangeResponse.data;
+                if (!cachedPriceRange || 
+                    cachedPriceRange.maxPrice !== newPriceRange.maxPrice || 
+                    cachedPriceRange.minPrice !== newPriceRange.minPrice) {
+                    
+                    setPriceRange(newPriceRange);
+                    setFilters(prev => ({
+                        ...prev,
+                        priceRange: [0, newPriceRange.maxPrice]
+                    }));
+                    cachePriceRange(newPriceRange);
+                }
+                
                 setMakes(uniqueMakes.map(make => ({ makeId: make, name: make })));
                 carsRef.current = initialCarsResponse.data;
                 setCars(initialCarsResponse.data);
@@ -427,47 +518,50 @@ const AvailableCars = ({ isAuthenticated }) => {
         if (!hasInitialized) {
             initializePage();
         }
-    }, [hasInitialized, getCachedYearRange, cacheYearRange, todayFormatted, today, EST_TIMEZONE]);
+    }, [hasInitialized, getCachedYearRange, getCachedPriceRange, cacheYearRange, cachePriceRange, todayFormatted, today, EST_TIMEZONE]);
     
     // Watch for filter changes and auto-search - optimized to prevent flickering
     useEffect(() => {
+        // Skip entirely if reset is in progress to avoid conflicts
+        if (resetInProgressRef.current) {
+            return;
+        }
+        
         // Only watch for filter changes after everything is properly initialized
         if (hasInitialized && filtersInitializedRef.current && filters.startDate && filters.endDate && filters.startTime && filters.endTime) {
-            const timeoutId = setTimeout(() => {
-                // More precise filter change detection - only trigger on meaningful changes
-                const hasActiveFilters = filters.make || filters.model || 
-                    filters.priceRange[0] !== 0 || filters.priceRange[1] !== maxPrice ||
-                    (filters.yearRange && yearRange && (
-                        filters.yearRange[0] !== yearRange.minYear || 
-                        filters.yearRange[1] !== yearRange.maxYear
-                    ));
-                
-                // Only fetch if we have meaningful filter changes and we're not already loading
-                if (hasActiveFilters && !filterLoading && !loading) {
-                    // Use a more stable approach - only fetch if filters have actually changed significantly
-                    const currentFilters = JSON.stringify({
+            // Check if filters actually changed before starting any timeout
+            const currentFilters = JSON.stringify({
+                make: filters.make,
+                model: filters.model,
+                priceRange: filters.priceRange,
+                yearRange: filters.yearRange
+            });
+            
+            // Only proceed if filters actually changed and we're not in reset mode
+            if (initializationRef.current && initializationRef.current.lastFilters !== currentFilters && !resetInProgressRef.current) {
+                const timeoutId = setTimeout(() => {
+                    // Triple-check that reset is not in progress and filters haven't changed
+                    if (resetInProgressRef.current) {
+                        return;
+                    }
+                    
+                    const latestFilters = JSON.stringify({
                         make: filters.make,
                         model: filters.model,
                         priceRange: filters.priceRange,
                         yearRange: filters.yearRange
                     });
                     
-                    // Store current filters in ref to compare and prevent duplicate calls
-                    if (initializationRef.current && initializationRef.current.lastFilters !== currentFilters) {
+                    if (latestFilters === currentFilters && !loading && !resetInProgressRef.current) {
                         initializationRef.current.lastFilters = currentFilters;
-                        // Add a small delay to ensure filters are stable
-                        setTimeout(() => {
-                            if (!filterLoading && !loading) {
-                                fetchAvailableCars();
-                            }
-                        }, 100);
+                        fetchAvailableCars();
                     }
-                }
-            }, 1500); // Increased debounce time to reduce rapid API calls
-            
-            return () => clearTimeout(timeoutId);
+                }, 500);
+                
+                return () => clearTimeout(timeoutId);
+            }
         }
-    }, [filters.priceRange, filters.yearRange, filters.make, filters.model, hasInitialized, fetchAvailableCars, maxPrice, yearRange, filterLoading, loading]);
+    }, [filters.priceRange, filters.yearRange, filters.make, filters.model]);
 
     // Handle booking notifications
     useEffect(() => {
@@ -480,7 +574,7 @@ const AvailableCars = ({ isAuthenticated }) => {
     // Handle window focus
     useEffect(() => {
         const handleFocus = () => {
-            if (hasInitialized && filters.startDate && filters.endDate && !filterLoading) {
+            if (hasInitialized && filters.startDate && filters.endDate) {
                 fetchAvailableCars();
             }
             
@@ -498,7 +592,7 @@ const AvailableCars = ({ isAuthenticated }) => {
 
         window.addEventListener('focus', handleFocus);
         return () => window.removeEventListener('focus', handleFocus);
-    }, [hasInitialized, filters.startDate, filters.endDate, fetchAvailableCars, getCachedYearRange, refreshYearRangeCache, filterLoading]);
+    }, [hasInitialized, filters.startDate, filters.endDate, fetchAvailableCars, getCachedYearRange, refreshYearRangeCache]);
 
     const handleBookNow = useCallback((car) => {
         navigate('/book-car', { 
@@ -590,24 +684,99 @@ const AvailableCars = ({ isAuthenticated }) => {
         }));
     }, []);
 
-    const handleFilterReset = useCallback(() => {
-        // Batch all filter resets into a single state update to prevent flickering
-        setFilters(prev => ({
-            ...prev,
-            priceRange: [0, maxPrice],
-            yearRange: yearRange ? [yearRange.minYear, yearRange.maxYear] : null,
-            make: '',
-            model: '',
-        }));
-        
-        // Clear models in a separate update to avoid cascading effects
-        setModels([]);
-        
-        // Clear the last filters reference to allow fresh filtering
-        if (initializationRef.current) {
-            initializationRef.current.lastFilters = null;
+    // Create a dedicated reset fetch function to avoid conflicts with the normal filter logic
+    const fetchCarsForReset = useCallback(async () => {
+        if (!filters.startDate || !filters.endDate) {
+            setError('Please select a start and end date.');
+            return;
         }
-    }, [maxPrice, yearRange]);
+
+        setError(null);
+
+        try {
+            const cleanedFilters = {
+                startDate: filters.startDate,
+                endDate: filters.endDate,
+                startTime: filters.startTime,
+                endTime: filters.endTime,
+                priceMin: 0,
+                priceMax: priceRange.maxPrice,
+                yearMin: yearRange ? yearRange.minYear : undefined,
+                yearMax: yearRange ? yearRange.maxYear : undefined,
+                make: undefined,
+                model: undefined,
+            };
+
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/cars/available`, {
+                params: cleanedFilters
+            });
+
+            const newCars = response.data || [];
+            setCars(newCars);
+            carsRef.current = newCars;
+
+        } catch (error) {
+            console.error('Error fetching cars for reset:', error);
+            setError('Failed to fetch available cars. Please try again.');
+            setCars([]);
+            carsRef.current = [];
+        }
+    }, [filters.startDate, filters.endDate, filters.startTime, filters.endTime, priceRange.maxPrice, yearRange]);
+
+    const handleFilterReset = useCallback(async () => {
+        // Mark reset as in progress to prevent conflicts (no UI feedback for seamless experience)
+        // setResetLoading(true);
+        resetInProgressRef.current = true;
+        
+        try {
+            // Clear the last filters reference first to prevent conflicts
+            if (initializationRef.current) {
+                initializationRef.current.lastFilters = null;
+            }
+            
+            // Create the reset filter values
+            const resetFilterValues = {
+                priceRange: [0, priceRange.maxPrice],
+                yearRange: yearRange ? [yearRange.minYear, yearRange.maxYear] : null,
+                make: '',
+                model: '',
+            };
+            
+            // Batch all filter resets into a single state update to prevent flickering
+            setFilters(prev => ({
+                ...prev,
+                ...resetFilterValues
+            }));
+            
+            // Clear models in a separate update to avoid cascading effects
+            setModels([]);
+            
+            // Small delay to ensure all state updates are processed before fetch
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Use the dedicated reset fetch function instead of the regular one
+            await fetchCarsForReset();
+            
+            // Update lastFilters to reflect the reset state after successful fetch
+            const resetFilters = JSON.stringify({
+                make: '',
+                model: '',
+                priceRange: [0, priceRange.maxPrice],
+                yearRange: yearRange ? [yearRange.minYear, yearRange.maxYear] : null
+            });
+            
+            if (initializationRef.current) {
+                initializationRef.current.lastFilters = resetFilters;
+            }
+            
+        } catch (error) {
+            console.error('Error during filter reset:', error);
+        } finally {
+            // Reset the flags after operation is complete
+            resetInProgressRef.current = false;
+            // setResetLoading(false);
+        }
+    }, [priceRange.maxPrice, yearRange, fetchCarsForReset]);
 
     return (
         <div className="container mx-auto mt-6 md:mt-10 p-3 md:p-6 available-cars-page">
@@ -685,7 +854,7 @@ const AvailableCars = ({ isAuthenticated }) => {
                             <Range
                                 step={10}
                                 min={0}
-                                max={maxPrice}
+                                max={priceRange.maxPrice}
                                 values={filters.priceRange}
                                 onChange={(values) => handleRangeChange('priceRange', values)}
                                 renderTrack={({ props, children }) => (
@@ -699,8 +868,8 @@ const AvailableCars = ({ isAuthenticated }) => {
                                         <div
                                             className="h-full bg-primary-color rounded-full"
                                             style={{
-                                                width: `${(filters.priceRange[1] - filters.priceRange[0]) / maxPrice * 100}%`,
-                                                left: `${filters.priceRange[0] / maxPrice * 100}%`,
+                                                                                            width: `${(filters.priceRange[1] - filters.priceRange[0]) / priceRange.maxPrice * 100}%`,
+                                            left: `${filters.priceRange[0] / priceRange.maxPrice * 100}%`,
                                                 position: 'absolute',
                                             }}
                                         />
@@ -844,10 +1013,9 @@ const AvailableCars = ({ isAuthenticated }) => {
                     {/* Search Button */}
                     <button
                         onClick={fetchAvailableCars}
-                        disabled={filterLoading}
-                        className="w-full bg-primary-color hover:bg-primary-color-dark text-white font-semibold py-2 px-4 rounded-md transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full bg-primary-color hover:bg-primary-color-dark text-white font-semibold py-2 px-4 rounded-md transition duration-200"
                     >
-                        {filterLoading ? 'Searching...' : 'Search Cars'}
+                        Search Cars
                     </button>
                 </div>
 
@@ -863,20 +1031,10 @@ const AvailableCars = ({ isAuthenticated }) => {
                         </div>
                     ) : (
                         <div className="relative">
-                            {/* Filter Loading Overlay - positioned absolutely to prevent layout shifts */}
-                            {filterLoading && (
-                                <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10 rounded-lg pointer-events-none">
-                                    <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg shadow-lg">
-                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-color"></div>
-                                        <span className="text-sm text-gray-600 font-medium">Updating results...</span>
-                                    </div>
-                                </div>
-                            )}
-                            
                             {/* Stable car grid container to prevent flickering */}
                             <div className="featured-cars grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8 max-w-7xl mx-auto min-h-[400px]">
                                 {carListings}
-                                {carListings === null && !filterLoading && (
+                                {carListings === null && (
                                     <div className="col-span-full text-center py-12">
                                         <p className="text-gray-500 text-lg">
                                             No cars available for the selected dates and times.
@@ -887,16 +1045,6 @@ const AvailableCars = ({ isAuthenticated }) => {
                                     </div>
                                 )}
                             </div>
-                            
-                            {/* Loading indicator that doesn't cause layout shifts */}
-                            {filterLoading && (
-                                <div className="absolute top-4 right-4 bg-white px-3 py-2 rounded-lg shadow-lg z-20">
-                                    <div className="flex items-center space-x-2">
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-color"></div>
-                                        <span className="text-xs text-gray-600">Updating...</span>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     )}
                 </div>

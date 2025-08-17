@@ -170,9 +170,12 @@ const CarManagement = () => {
                 setCarId(response.data.carId);
             }
     
-            // Clear year range cache when car data changes
+            // Clear caches when car data changes
             if (window.clearYearRangeCache) {
                 window.clearYearRangeCache();
+            }
+            if (window.clearPriceRangeCache) {
+                window.clearPriceRangeCache();
             }
     
             resetForm();
@@ -223,9 +226,12 @@ const CarManagement = () => {
                 },
             });
             
-            // Clear year range cache when car is deleted
+            // Clear caches when car is deleted
             if (window.clearYearRangeCache) {
                 window.clearYearRangeCache();
+            }
+            if (window.clearPriceRangeCache) {
+                window.clearPriceRangeCache();
             }
             
             fetchCars();

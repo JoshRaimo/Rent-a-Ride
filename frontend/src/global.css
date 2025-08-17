@@ -806,65 +806,54 @@ body {
     transform: translateY(0);
 }
 
-/* Disable animations on the available-cars page */
+/* Controlled animations on the available-cars page - prevent initial load animations but allow hover effects */
 .available-cars-page .car-listing {
     animation: none !important;
     opacity: 1 !important;
     transform: translateY(0) !important;
-    transition: none !important;
     will-change: auto !important;
     backface-visibility: visible !important;
     perspective: none !important;
+    /* Allow smooth hover transitions */
+    transition: transform 0.2s ease, box-shadow 0.3s ease !important;
 }
 
-/* Disable all animations and transitions for car listings on available-cars page */
+/* Disable initial load animations but allow controlled hover effects */
 .available-cars-page .car-listing * {
     animation: none !important;
-    transition: none !important;
-    transform: none !important;
     will-change: auto !important;
 }
 
-/* Disable hover effects that could cause flickering */
+/* Enable controlled hover effects that match homepage */
 .available-cars-page .car-listing:hover {
-    transform: none !important;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Enable image hover effects */
+.available-cars-page .car-listing img {
+    transition: transform 0.3s ease !important;
 }
 
 .available-cars-page .car-listing:hover img {
-    transform: none !important;
+    transform: scale(1.02) !important;
+}
+
+/* Enable top gradient line hover effect */
+.available-cars-page .car-listing::before {
+    transition: opacity 0.3s ease !important;
 }
 
 .available-cars-page .car-listing:hover::before {
-    opacity: 0 !important;
+    opacity: 1 !important;
 }
 
+/* Enable price badge shimmer effect */
 .available-cars-page .car-listing .bg-gradient-to-r::before {
-    display: none !important;
+    transition: transform 0.6s ease !important;
 }
 
-/* Available-cars page button effects (now handled globally) */
-.available-cars-page .car-listing .book-button:hover,
-.available-cars-page .car-listing .login-button:hover,
-.available-cars-page .car-listing .edit-button:hover,
-.available-cars-page .car-listing .delete-button:hover {
-    /* Button hover effects now handled by global rules */
-}
 
-/* Available-cars page group effects (now handled globally) */
-.available-cars-page .car-listing.group:hover {
-    /* Group hover effects now handled by global rules */
-}
-
-/* Available-cars page transitions (now handled globally) */
-.available-cars-page .car-listing * {
-    /* Transitions now handled by global rules */
-}
-
-/* Available-cars page price badge effects (now handled globally) */
-.available-cars-page .car-listing .bg-gradient-to-r::before {
-    /* Price badge effects now handled by global rules */
-}
 
 /* Ensure admin dashboard car listings get the same enhanced shadows */
 .admin-sidebar + .main-content .car-listing:hover,

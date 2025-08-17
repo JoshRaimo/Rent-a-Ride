@@ -200,6 +200,46 @@ const getYearRange = async (req, res) => {
     }
 };
 
+// Get price range (minimum and maximum car prices)
+const getPriceRange = async (req, res) => {
+    try {
+        // Get all cars and find min/max prices
+        const priceStats = await Car.aggregate([
+            {
+                $group: {
+                    _id: null,
+                    minPrice: { $min: "$pricePerDay" },
+                    maxPrice: { $max: "$pricePerDay" },
+                    avgPrice: { $avg: "$pricePerDay" },
+                    totalCars: { $sum: 1 }
+                }
+            }
+        ]);
+        
+        if (priceStats.length === 0) {
+            // No cars exist, return fallback values
+            return res.status(200).json({
+                minPrice: 0,
+                maxPrice: 100,
+                avgPrice: 50,
+                totalCars: 0
+            });
+        }
+        
+        const { minPrice, maxPrice, avgPrice, totalCars } = priceStats[0];
+        
+        res.status(200).json({
+            minPrice: Math.floor(minPrice),
+            maxPrice: Math.ceil(maxPrice),
+            avgPrice: Math.round(avgPrice),
+            totalCars
+        });
+    } catch (err) {
+        console.error('Error fetching price range:', err.message);
+        res.status(500).json({ error: 'Failed to fetch price range', details: err.message });
+    }
+};
+
 // Add a new car
 const addCar = async (req, res) => {
     const errors = validationResult(req);
@@ -292,4 +332,4 @@ const deleteCar = async (req, res) => {
     }
 };
 
-module.exports = { getAllCars, getAvailableCars, getAllMakes, getYearRange, addCar, updateCar, deleteCar };
+module.exports = { getAllCars, getAvailableCars, getAllMakes, getYearRange, getPriceRange, addCar, updateCar, deleteCar };
