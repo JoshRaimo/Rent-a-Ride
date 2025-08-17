@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Select from 'react-select';
+import { Car } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
 import CarListing from '../components/CarListing';
 import { toast } from 'react-toastify';
@@ -110,43 +111,63 @@ const CarManagement = () => {
         fetchYears();
     }, [make, selectedModel]);
 
-    // Handle image upload
+    // Handle image file selection (just store the file, don't upload yet)
     const handleImageUpload = async (e) => {
         const file = e.target.files[0];
-        if (!file) return;
+        if (!file) {
+            setImage(null);
+            return;
+        }
+        
+        setImage(file);
+    };
 
+    // Upload image to S3 (called during form submission)
+    const uploadImageToS3 = async (file, year, make, model) => {
         const formData = new FormData();
         formData.append('image', file);
+        formData.append('year', year);
+        formData.append('make', make);
+        formData.append('model', model);
 
-        try {
-            const response = await axios.post(
-                `${process.env.REACT_APP_API_URL}/images/upload`,
-                formData,
-                {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                        Authorization: `Bearer ${localStorage.getItem('token')}`,
-                    },
-                }
-            );
-            setImageUrl(response.data.imageUrl);
-        } catch (err) {
-            console.error('Error uploading image:', err);
-            toast.error('Failed to upload image. Please try again.');
-        }
+        const response = await axios.post(
+            `${process.env.REACT_APP_API_URL}/images/upload`,
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+            }
+        );
+        
+        return response.data.imageUrl;
     };
 
     // Handle add or update car
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            let finalImageUrl = imageUrl;
+            
+            // If there's a new image selected, upload it first
+            if (image) {
+                try {
+                    finalImageUrl = await uploadImageToS3(image, selectedYear, make, selectedModel);
+                } catch (imageError) {
+                    console.error('Error uploading image:', imageError);
+                    toast.error('Failed to upload image. Please try again.');
+                    return; // Don't proceed with car submission if image upload fails
+                }
+            }
+
             const carData = {
                 make,
                 model: selectedModel,
                 year: selectedYear,
                 pricePerDay: price,
                 availabilityStatus: true,
-                image: imageUrl,
+                image: finalImageUrl,
             };
     
             let response;
@@ -176,6 +197,11 @@ const CarManagement = () => {
             }
             if (window.clearPriceRangeCache) {
                 window.clearPriceRangeCache();
+            }
+    
+            // Update the imageUrl state if we uploaded a new image
+            if (image && finalImageUrl) {
+                setImageUrl(finalImageUrl);
             }
     
             resetForm();
@@ -277,10 +303,17 @@ const CarManagement = () => {
     };
 
     return (
-        <div className="flex">
+        <div className="flex min-h-screen bg-gray-50">
             <AdminSidebar />
-            <div className="flex-1 ml-20 mt-16 p-6 bg-white rounded-lg shadow-lg">
-                <h2 className="text-3xl font-bold text-center text-primary-color mb-6">Car Management</h2>
+            <div className="flex-1 ml-20 p-8">
+                {/* Header */}
+                <div className="mb-8">
+                    <div className="flex items-center mb-2">
+                        <Car className="w-8 h-8 text-blue-600 mr-3" />
+                        <h1 className="text-4xl font-bold text-gray-900">Car Management</h1>
+                    </div>
+                    <p className="text-gray-600 text-lg">Add, edit, and manage your car rental fleet</p>
+                </div>
 
                 {/* Add Car Form */}
                 <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">

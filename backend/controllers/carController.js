@@ -104,7 +104,9 @@ const getAvailableCars = async (req, res) => {
         }
 
         // Find booked cars in the selected date range with proper time overlap detection
+        // Only consider confirmed and pending bookings - canceled bookings should not block availability
         const bookedCarIds = await Booking.find({
+            status: { $in: ['confirmed', 'pending'] }, // Exclude canceled bookings
             $or: [
                 // Case 1: New booking starts during an existing booking
                 { startDate: { $lt: end, $gte: start } },

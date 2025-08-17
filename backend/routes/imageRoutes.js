@@ -1,9 +1,19 @@
 const express = require('express');
 const multer = require('multer');
 const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const User = require('../models/User');
+const { authenticate } = require('../middleware/authMiddleware');
 const router = express.Router();
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
+
+// Helper function to sanitize filename for S3
+function sanitizeFilename(filename) {
+    return filename
+        .replace(/[^a-zA-Z0-9.-]/g, '_') // Replace special characters with underscore
+        .replace(/_{2,}/g, '_') // Replace multiple underscores with single underscore
+        .replace(/^_+|_+$/g, ''); // Remove leading/trailing underscores
+}
 
 // Configure AWS S3 (v3)
 const s3 = new S3Client({
@@ -19,13 +29,26 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // **Route to Upload Image to S3**
-router.post('/upload', upload.single('image'), async (req, res) => {
+router.post('/upload', authenticate, upload.single('image'), async (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    const { year, make, model } = req.body;
+    
+    // Validate required car information
+    if (!year || !make || !model) {
+        return res.status(400).json({ error: 'Year, make, and model are required for car image upload' });
+    }
+
     const fileExtension = path.extname(req.file.originalname);
-    const fileName = `images/${uuidv4()}${fileExtension}`;
+    
+    // Sanitize car information for S3 filename
+    const sanitizedYear = sanitizeFilename(year.toString());
+    const sanitizedMake = sanitizeFilename(make);
+    const sanitizedModel = sanitizeFilename(model);
+    
+    const fileName = `images/${sanitizedYear}${sanitizedMake}${sanitizedModel}${fileExtension}`;
 
     const params = {
         Bucket: process.env.S3_BUCKET_NAME,

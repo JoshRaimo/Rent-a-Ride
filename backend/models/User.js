@@ -10,7 +10,11 @@ const userSchema = new mongoose.Schema({
         trim: true
     },
     password: { type: String, required: true },
-    role: { type: String, enum: ['user', 'admin'], default: 'user' }
+    role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    profilePicture: { 
+        type: String, 
+        default: '' // S3 URL for the profile picture
+    }
 });
 
 module.exports = mongoose.model('User', userSchema);

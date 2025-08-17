@@ -11,6 +11,7 @@ const carRoutes = require('./routes/carRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const jwtRoutes = require('./routes/jwtRoutes');
 const imageRoutes = require('./routes/imageRoutes');
+const profileImageRoutes = require('./routes/profileImageRoutes');
 const statsRoutes = require('./routes/statsRoutes');
 
 const app = express();
@@ -50,6 +51,7 @@ app.use('/api/cars', carRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/jwt', jwtRoutes);
 app.use('/api/images', imageRoutes);
+app.use('/api/profile-images', profileImageRoutes);
 app.use('/api/stats', statsRoutes);
 
 // Error handling middleware

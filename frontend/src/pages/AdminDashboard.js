@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, Routes, Route } from 'react-router-dom';
 import axios from 'axios';
+import { Users, Car, Calendar, TrendingUp, Activity, BarChart3 } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
 import CarManagement from './CarManagement';
 import UserManagement from './UserManagement';
@@ -46,49 +47,134 @@ const AdminDashboard = () => {
     }, []);
 
     return (
-        <div className="flex">
+        <div className="flex min-h-screen bg-gray-50">
             {/* Sidebar */}
             <AdminSidebar />
 
-            {/* Main Content - Adjusted to Center Content */}
-            <div className="flex-1 flex flex-col items-center justify-center p-6">
-                <h2 className="text-3xl font-bold text-primary-color mb-6 text-center">
-                    Admin Dashboard
-                </h2>
+            {/* Main Content */}
+            <div className="flex-1 ml-20 p-8">
+                {/* Header */}
+                <div className="mb-8">
+                    <div className="flex items-center mb-2">
+                        <BarChart3 className="w-8 h-8 text-blue-600 mr-3" />
+                        <h1 className="text-4xl font-bold text-gray-900">Admin Dashboard</h1>
+                    </div>
+                    <p className="text-gray-600 text-lg">Welcome back! Here's what's happening with your rental business today.</p>
+                </div>
 
-                {error && <p className="text-red-500 text-center">{error}</p>}
+                {error && (
+                    <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-red-700 flex items-center">
+                            <Activity className="w-5 h-5 mr-2" />
+                            {error}
+                        </p>
+                    </div>
+                )}
 
                 {loading ? (
-                    <p className="text-center">Loading...</p>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl">
-                        {/* Users Card */}
-                        <Link
-                            to="/admin-dashboard/users"
-                            className="bg-blue-500 text-white p-6 rounded-lg shadow-md hover:bg-blue-600 transition text-center"
-                        >
-                            <h3 className="text-2xl font-bold">Users</h3>
-                            <p className="text-4xl mt-2">{userCount !== null ? userCount : 'N/A'}</p>
-                        </Link>
-
-                        {/* Cars Card */}
-                        <Link
-                            to="/admin-dashboard/cars"
-                            className="bg-green-500 text-white p-6 rounded-lg shadow-md hover:bg-green-600 transition text-center"
-                        >
-                            <h3 className="text-2xl font-bold">Cars</h3>
-                            <p className="text-4xl mt-2">{carCount !== null ? carCount : 'N/A'}</p>
-                        </Link>
-
-                        {/* Bookings Card */}
-                        <Link
-                            to="/admin-dashboard/bookings"
-                            className="bg-yellow-500 text-white p-6 rounded-lg shadow-md hover:bg-yellow-600 transition text-center"
-                        >
-                            <h3 className="text-2xl font-bold">Bookings</h3>
-                            <p className="text-4xl mt-2">{bookingCount !== null ? bookingCount : 'N/A'}</p>
-                        </Link>
+                    <div className="flex items-center justify-center py-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        <p className="ml-4 text-gray-600 text-lg">Loading dashboard data...</p>
                     </div>
+                ) : (
+                    <>
+                        {/* Stats Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                            {/* Users Card */}
+                            <Link
+                                to="/admin-dashboard/users"
+                                className="group bg-white p-6 rounded-xl shadow-md hover:shadow-xl border border-gray-200 hover:border-blue-300 transition-all duration-300 transform hover:-translate-y-1"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Total Users</p>
+                                        <p className="text-3xl font-bold text-gray-900 mt-2">
+                                            {userCount !== null ? userCount.toLocaleString() : 'N/A'}
+                                        </p>
+                                        <div className="flex items-center mt-2">
+                                            <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
+                                            <span className="text-green-500 text-sm font-medium">Active</span>
+                                        </div>
+                                    </div>
+                                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                                        <Users className="w-6 h-6 text-blue-600" />
+                                    </div>
+                                </div>
+                            </Link>
+
+                            {/* Cars Card */}
+                            <Link
+                                to="/admin-dashboard/cars"
+                                className="group bg-white p-6 rounded-xl shadow-md hover:shadow-xl border border-gray-200 hover:border-green-300 transition-all duration-300 transform hover:-translate-y-1"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Available Cars</p>
+                                        <p className="text-3xl font-bold text-gray-900 mt-2">
+                                            {carCount !== null ? carCount.toLocaleString() : 'N/A'}
+                                        </p>
+                                        <div className="flex items-center mt-2">
+                                            <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
+                                            <span className="text-green-500 text-sm font-medium">In Fleet</span>
+                                        </div>
+                                    </div>
+                                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center group-hover:bg-green-200 transition-colors">
+                                        <Car className="w-6 h-6 text-green-600" />
+                                    </div>
+                                </div>
+                            </Link>
+
+                            {/* Bookings Card */}
+                            <Link
+                                to="/admin-dashboard/bookings"
+                                className="group bg-white p-6 rounded-xl shadow-md hover:shadow-xl border border-gray-200 hover:border-purple-300 transition-all duration-300 transform hover:-translate-y-1"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Total Bookings</p>
+                                        <p className="text-3xl font-bold text-gray-900 mt-2">
+                                            {bookingCount !== null ? bookingCount.toLocaleString() : 'N/A'}
+                                        </p>
+                                        <div className="flex items-center mt-2">
+                                            <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
+                                            <span className="text-green-500 text-sm font-medium">All Time</span>
+                                        </div>
+                                    </div>
+                                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center group-hover:bg-purple-200 transition-colors">
+                                        <Calendar className="w-6 h-6 text-purple-600" />
+                                    </div>
+                                </div>
+                            </Link>
+                        </div>
+
+                        {/* Quick Actions */}
+                        <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
+                            <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <Link
+                                    to="/admin-dashboard/cars"
+                                    className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-blue-50 transition-colors group"
+                                >
+                                    <Car className="w-5 h-5 text-gray-600 group-hover:text-blue-600 mr-3" />
+                                    <span className="text-gray-700 group-hover:text-blue-700 font-medium">Manage Cars</span>
+                                </Link>
+                                <Link
+                                    to="/admin-dashboard/users"
+                                    className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-blue-50 transition-colors group"
+                                >
+                                    <Users className="w-5 h-5 text-gray-600 group-hover:text-blue-600 mr-3" />
+                                    <span className="text-gray-700 group-hover:text-blue-700 font-medium">Manage Users</span>
+                                </Link>
+                                <Link
+                                    to="/admin-dashboard/bookings"
+                                    className="flex items-center p-4 bg-gray-50 rounded-lg hover:bg-blue-50 transition-colors group"
+                                >
+                                    <Calendar className="w-5 h-5 text-gray-600 group-hover:text-blue-600 mr-3" />
+                                    <span className="text-gray-700 group-hover:text-blue-700 font-medium">View Bookings</span>
+                                </Link>
+                            </div>
+                        </div>
+                    </>
                 )}
 
                 <Routes>
