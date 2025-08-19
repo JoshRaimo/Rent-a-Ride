@@ -40,7 +40,7 @@ const createBooking = async (req, res) => {
         // Check for conflicting bookings (exclude canceled and completed bookings)
         const conflictingBooking = await Booking.findOne({
             car: carId,
-            status: { $in: ['confirmed', 'pending'] }, // Only check active bookings
+            status: 'confirmed', // Only check confirmed bookings since we auto-confirm
             $or: [
                 { startDate: { $lte: end }, endDate: { $gte: start } }
             ]
@@ -60,18 +60,18 @@ const createBooking = async (req, res) => {
         const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
         const totalPrice = days * car.pricePerDay;
 
-        // Create the booking
+        // Create the booking with confirmed status (auto-confirmation)
         const booking = new Booking({
             user: req.user.id,
             car: carId,
             startDate: start,
             endDate: end,
             totalPrice,
-            status: 'pending'
+            status: 'confirmed'
         });
 
         await booking.save();
-        res.status(201).json({ message: 'Booking created successfully', booking });
+        res.status(201).json({ message: 'Booking confirmed successfully', booking });
 
     } catch (error) {
         console.error('Error creating booking:', error);

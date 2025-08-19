@@ -8,7 +8,7 @@ const BookingManagement = () => {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [filter, setFilter] = useState('all'); // Filter: all, pending, confirmed, canceled
+    const [filter, setFilter] = useState('all'); // Filter: all, confirmed, completed, canceled
     
     const { toast, confirm } = useToast();
 
@@ -114,8 +114,6 @@ const BookingManagement = () => {
                 return 'bg-blue-100 text-blue-800';
             case 'canceled':
                 return 'bg-red-100 text-red-800';
-            case 'pending':
-                return 'bg-yellow-100 text-yellow-800';
             default:
                 return 'bg-gray-100 text-gray-800';
         }
@@ -129,8 +127,6 @@ const BookingManagement = () => {
                 return <CheckCircle className="w-4 h-4" />;
             case 'canceled':
                 return <XCircle className="w-4 h-4" />;
-            case 'pending':
-                return <Clock className="w-4 h-4" />;
             default:
                 return <Clock className="w-4 h-4" />;
         }
@@ -166,17 +162,12 @@ const BookingManagement = () => {
                                 onChange={(e) => setFilter(e.target.value)}
                             >
                                 <option value="all">All Bookings</option>
-                                <option value="pending">Pending</option>
                                 <option value="confirmed">Confirmed</option>
                                 <option value="completed">Completed</option>
                                 <option value="canceled">Canceled</option>
                             </select>
                         </div>
                         <div className="flex items-center gap-6 text-sm">
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                                <span>Pending: {bookings.filter(b => b.status === 'pending').length}</span>
-                            </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 bg-green-400 rounded-full"></div>
                                 <span>Confirmed: {bookings.filter(b => b.status === 'confirmed').length}</span>

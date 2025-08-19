@@ -1,8 +1,29 @@
 {
-  "dependencies": {
-    "mongodb": "^6.12.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "react-scripts": "^5.0.1"
+  "name": "rent-a-ride",
+  "version": "1.0.0",
+  "description": "Rent-a-Ride Application - Full Stack Car Rental Platform",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "start": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "dev-simple": "start \"Backend\" cmd /k \"cd backend && npm start\" && timeout /t 3 /nobreak > nul && start \"Frontend\" cmd /k \"cd frontend && npm start\"",
+    "backend": "cd backend && npm start",
+    "frontend": "cd frontend && npm start",
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "build": "cd frontend && npm run build",
+    "test": "cd frontend && npm test",
+    "test-coverage": "cd frontend && npm test -- --watchAll=false --coverage"
+  },
+  "keywords": [
+    "car-rental",
+    "react",
+    "nodejs",
+    "mongodb",
+    "express"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   }
 }

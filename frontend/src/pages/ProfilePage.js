@@ -167,8 +167,6 @@ const ProfilePage = ({ onUpdateUser }) => {
                 return 'bg-blue-100 text-blue-800';
             case 'canceled':
                 return 'bg-red-100 text-red-800';
-            case 'pending':
-                return 'bg-yellow-100 text-yellow-800';
             default:
                 return 'bg-gray-100 text-gray-800';
         }
@@ -182,8 +180,6 @@ const ProfilePage = ({ onUpdateUser }) => {
                 return <Calendar className="w-4 h-4" />;
             case 'canceled':
                 return <X className="w-4 h-4" />;
-            case 'pending':
-                return <Clock className="w-4 h-4" />;
             default:
                 return <Clock className="w-4 h-4" />;
         }
@@ -192,13 +188,13 @@ const ProfilePage = ({ onUpdateUser }) => {
     const getFilteredBookings = () => {
         switch (bookingFilter) {
             case 'active':
-                return bookings.filter(booking => ['pending', 'confirmed'].includes(booking.status));
+                return bookings.filter(booking => booking.status === 'confirmed');
             case 'completed':
                 return bookings.filter(booking => booking.status === 'completed');
             case 'all':
                 return bookings;
             default:
-                return bookings.filter(booking => ['pending', 'confirmed'].includes(booking.status));
+                return bookings.filter(booking => booking.status === 'confirmed');
         }
     };
 
@@ -461,7 +457,7 @@ const ProfilePage = ({ onUpdateUser }) => {
                                                 : 'text-gray-600 hover:text-gray-900'
                                         }`}
                                     >
-                                        Active ({bookings.filter(b => ['pending', 'confirmed'].includes(b.status)).length})
+                                        Active ({bookings.filter(b => b.status === 'confirmed').length})
                                     </button>
                                     <button
                                         onClick={() => setBookingFilter('completed')}
