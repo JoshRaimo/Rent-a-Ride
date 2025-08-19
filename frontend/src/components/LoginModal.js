@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { toast } from 'react-toastify';
+import { useToast } from '../hooks/useToast';
 import { FaEye, FaEyeSlash, FaTimes } from 'react-icons/fa';
-import 'react-toastify/dist/ReactToastify.css';
+
 
 const LoginModal = ({ isOpen, onClose, onLoginSuccess, onShowRegister }) => {
     const [email, setEmail] = useState('');
@@ -10,6 +10,8 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess, onShowRegister }) => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    
+    const { toast } = useToast();
 
     // Validate email format
     const validateEmail = (email) => {
@@ -45,7 +47,7 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess, onShowRegister }) => {
             onLoginSuccess(token);
 
             // Display success message
-            toast.success('Login successful!');
+            // Success notification is handled in App.js handleLoginSuccess
 
             // Close modal and reset form
             onClose();
@@ -55,7 +57,9 @@ const LoginModal = ({ isOpen, onClose, onLoginSuccess, onShowRegister }) => {
         } catch (err) {
             console.error('Login error:', err.response?.data?.message || 'Login failed');
             setError(err.response?.data?.message || 'Invalid email or password');
-            toast.error(err.response?.data?.message || 'Login failed');
+            toast.error(err.response?.data?.message || 'Login failed', {
+                title: 'Login Error'
+            });
         } finally {
             setLoading(false);
         }

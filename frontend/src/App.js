@@ -1,18 +1,20 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { BrowserRouter as Router, Route, Routes, Link, useNavigate, useLocation } from 'react-router-dom';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+
 
 
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
 import AdminDashboard from './pages/AdminDashboard';
 import AvailableCars from './pages/AvailableCars';
+
 import ProtectedRoute from './components/ProtectedRoute';
 import BookCar from './pages/BookCar';
 import CarManagement from './pages/CarManagement';
 import UserManagement from './pages/UserManagement';
 import BookingManagement from './pages/BookingManagement';
+import ReviewManagement from './pages/ReviewManagement';
+import NotificationDemo from './pages/NotificationDemo';
 
 import {
     getToken,
@@ -27,24 +29,16 @@ import { LogOut, Menu, X } from 'lucide-react'; // Import menu icons
 import LoginModal from './components/LoginModal';
 import RegisterModal from './components/RegisterModal';
 import { AuthModalProvider, useAuthModal } from './contexts/AuthModalContext';
+import { NotificationProvider, useNotification } from './contexts/NotificationContext';
 
 const App = () => {
     return (
         <Router>
-            <AuthModalProvider>
-                <MainApp />
-                <ToastContainer
-                    position="top-center"
-                    autoClose={3000}
-                    hideProgressBar={false}
-                    newestOnTop={true}
-                    closeOnClick
-                    rtl={false}
-                    pauseOnFocusLoss
-                    draggable
-                    pauseOnHover
-                />
-            </AuthModalProvider>
+            <NotificationProvider position="top-right">
+                <AuthModalProvider>
+                    <MainApp />
+                </AuthModalProvider>
+            </NotificationProvider>
         </Router>
     );
 };
@@ -66,6 +60,8 @@ const MainApp = () => {
         getPreLoginLocation,
         clearPreLoginLocation
     } = useAuthModal();
+
+    const { success: showSuccess, error: showError, info: showInfo } = useNotification();
 
     // Memoize isAuthenticated to prevent unnecessary re-renders
     const isAuthenticated = useMemo(() => !!token, [token]);
@@ -107,7 +103,7 @@ const MainApp = () => {
         setUser(null);
         setIsMobileMenuOpen(false); // Close mobile menu on logout
         if (showNotification) {
-            toast.success('Logged out successfully!');
+            showSuccess('Logged out successfully!');
         }
     };
 
@@ -120,6 +116,11 @@ const MainApp = () => {
         
         // Close the login modal
         closeLoginModal();
+        
+        // Show welcome notification
+        showSuccess(`Welcome back, ${decoded.username}!`, { 
+            title: 'Login Successful' 
+        });
         
         // Redirect to pre-login location if available
         const preLoginLocation = getPreLoginLocation();
@@ -275,7 +276,9 @@ const MainApp = () => {
                 <Routes>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/available-cars" element={<AvailableCars isAuthenticated={isAuthenticated} />} />
+
                     <Route path="/book-car" element={<BookCar />} />
+                    <Route path="/notifications" element={<NotificationDemo />} />
 
                     {user?.role === 'admin' && (
                         <>
@@ -283,6 +286,7 @@ const MainApp = () => {
                             <Route path="/admin-dashboard/cars" element={<CarManagement />} />
                             <Route path="/admin-dashboard/users" element={<UserManagement />} />
                             <Route path="/admin-dashboard/bookings" element={<BookingManagement />} />
+                            <Route path="/admin-dashboard/reviews" element={<ReviewManagement />} />
                         </>
                     )}
 

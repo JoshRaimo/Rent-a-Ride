@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import CarListing from '../components/CarListing';
 import { formatInTimeZone, toDate } from 'date-fns-tz'
-import { toast } from 'react-toastify';
+import { useToast } from '../hooks/useToast';
 import { Search, Calendar, Clock, MapPin, Star, Shield, Zap, Users, Award, Phone, Mail, Instagram, Linkedin } from 'lucide-react';
 
 const HomePage = () => {
     const navigate = useNavigate();
+    const { toast } = useToast();
     const EST_TIMEZONE = 'America/New_York';
 
     // Get current date and time in EST
@@ -94,10 +95,39 @@ const HomePage = () => {
     }, [todayFormatted, tomorrowFormatted]);
 
     // Generate time options in 30-minute intervals with Noon and Midnight labels
-    const generateTimeOptions = (isStartTime = false) => {
+    const generateTimeOptions = useCallback((isStartTime = false) => {
         const options = [];
         const isToday = startDate === todayFormatted;
+        const isSameDay = startDate === endDate;
         const nextHalfHourInfo = getNextHalfHour();
+
+        // Parse the selected start time to get hour and minute for comparison
+        let startHour = 0, startMinute = 0;
+        if (!isStartTime && startTime && isSameDay) {
+            const startTimeDate = new Date();
+            if (startTime === 'Midnight') {
+                startHour = 0;
+                startMinute = 0;
+            } else if (startTime === 'Noon') {
+                startHour = 12;
+                startMinute = 0;
+            } else {
+                // Parse time like "4:30 AM" or "2:00 PM"
+                const [time, period] = startTime.split(' ');
+                const [hourStr, minuteStr] = time.split(':');
+                let hour = parseInt(hourStr, 10);
+                const minute = parseInt(minuteStr, 10);
+                
+                if (period === 'PM' && hour !== 12) {
+                    hour += 12;
+                } else if (period === 'AM' && hour === 12) {
+                    hour = 0;
+                }
+                
+                startHour = hour;
+                startMinute = minute;
+            }
+        }
 
         for (let hour = 0; hour < 24; hour++) {
             for (let minute = 0; minute < 60; minute += 30) {
@@ -108,20 +138,50 @@ const HomePage = () => {
                 if (label === '12:00 AM') label = 'Midnight';
                 if (label === '12:00 PM') label = 'Noon';
 
-                // Only filter times for start time on today's date
-                if (!isStartTime || !isToday || 
-                    (hour > estNow.getHours() || 
-                    (hour === estNow.getHours() && minute >= Math.ceil(estNow.getMinutes() / 30) * 30))) {
+                let shouldInclude = true;
+
+                // Filter for start time on today's date
+                if (isStartTime && isToday) {
+                    shouldInclude = hour > estNow.getHours() || 
+                        (hour === estNow.getHours() && minute >= Math.ceil(estNow.getMinutes() / 30) * 30);
+                }
+
+                // Filter for end time when same day as start date
+                if (!isStartTime && isSameDay) {
+                    // End time must be after start time (at least 30 minutes later)
+                    if (hour < startHour || (hour === startHour && minute <= startMinute)) {
+                        shouldInclude = false;
+                    }
+                }
+
+                if (shouldInclude) {
                     options.push({ value: label, label });
                 }
             }
         }
         return options;
-    };
+    }, [startDate, endDate, startTime, todayFormatted, estNow]);
+
+    // Adjust end time when start time changes on the same day
+    useEffect(() => {
+        if (startDate === endDate && startTime) {
+            const endTimeOptions = generateTimeOptions(false);
+            
+            // Check if current end time is still valid
+            const isCurrentEndTimeValid = endTimeOptions.some(option => option.value === endTime);
+            
+            if (!isCurrentEndTimeValid && endTimeOptions.length > 0) {
+                // Set to the first available end time option
+                setEndTime(endTimeOptions[0].value);
+            }
+        }
+    }, [startTime, startDate, endDate, generateTimeOptions]);
 
     const validateDates = () => {
         if (!startDate || !endDate || !startTime || !endTime) {
-            toast.error('Please enter valid start and end dates and times.');
+            toast.error('Please enter valid start and end dates and times.', {
+                title: 'Invalid Input'
+            });
             return false;
         }
 
@@ -130,12 +190,16 @@ const HomePage = () => {
         const now = new Date();
 
         if (startDateTime <= now) {
-            toast.error('Start date and time must be in the future.');
+            toast.error('Start date and time must be in the future.', {
+                title: 'Invalid Date'
+            });
             return false;
         }
 
         if (endDateTime <= startDateTime) {
-            toast.error('End date and time must be after the start time.');
+            toast.error('End date and time must be after the start time.', {
+                title: 'Invalid Date Range'
+            });
             return false;
         }
 

@@ -1,6 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import StarRating from './StarRating';
 
 const CarListing = React.memo(({ car, onEdit, onDelete, showEditDeleteButtons, onBookNow, onLogin, isDynamic = false }) => {
+    const navigate = useNavigate();
+
     // Format price with commas for thousands
     const formatPrice = (price) => {
         return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -28,7 +32,18 @@ const CarListing = React.memo(({ car, onEdit, onDelete, showEditDeleteButtons, o
                         {statusInfo.text}
                     </span>
                 </div>
-                <p className="text-lg text-gray-600 font-medium">{car.year}</p>
+                <div className="flex items-center justify-between">
+                    <p className="text-lg text-gray-600 font-medium">{car.year}</p>
+                    {/* Rating Display */}
+                    {car.averageRating > 0 && (
+                        <div className="flex items-center gap-1">
+                            <StarRating rating={car.averageRating} size="sm" showNumber={true} />
+                            <span className="text-xs text-gray-500 ml-1">
+                                ({car.reviewCount} review{car.reviewCount !== 1 ? 's' : ''})
+                            </span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Image Section */}

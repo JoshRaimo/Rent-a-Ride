@@ -4,7 +4,7 @@ import Select from 'react-select';
 import { Car } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
 import CarListing from '../components/CarListing';
-import { toast } from 'react-toastify';
+import { useToast } from '../hooks/useToast';
 
 const CarManagement = () => {
     const [cars, setCars] = useState([]);
@@ -24,6 +24,8 @@ const CarManagement = () => {
     const [search, setSearch] = useState('');
     const [fileInputKey, setFileInputKey] = useState(Date.now());
     const formRef = useRef(null);
+    
+    const { toast, confirm } = useToast();
 
     const makeOptions = makes;
     const modelOptions = models.map(model => ({ value: model, label: model }));
@@ -156,7 +158,9 @@ const CarManagement = () => {
                     finalImageUrl = await uploadImageToS3(image, selectedYear, make, selectedModel);
                 } catch (imageError) {
                     console.error('Error uploading image:', imageError);
-                    toast.error('Failed to upload image. Please try again.');
+                    toast.error('Failed to upload image. Please try again.', {
+                        title: 'Upload Error'
+                    });
                     return; // Don't proceed with car submission if image upload fails
                 }
             }
@@ -177,14 +181,18 @@ const CarManagement = () => {
                         Authorization: `Bearer ${localStorage.getItem('token')}`,
                     },
                 });
-                toast.success('Car updated successfully');
+                toast.success('Car updated successfully', {
+                    title: 'Car Updated'
+                });
             } else {
                 response = await axios.post(`${process.env.REACT_APP_API_URL}/cars`, carData, {
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem('token')}`,
                     },
                 });
-                toast.success('Car added successfully');
+                toast.success('Car added successfully', {
+                    title: 'Car Added'
+                });
             }
     
             if (response.data.carId) {
@@ -208,40 +216,23 @@ const CarManagement = () => {
             fetchCars();
         } catch (err) {
             console.error('Error adding/updating car:', err);
-            toast.error('Failed to add/update car');
+            toast.error('Failed to add/update car', {
+                title: 'Operation Failed'
+            });
         }
     };
 
     // Handle delete car
     const handleDelete = async (carId) => {
-        toast.info(
-            <div>
-                <p>Are you sure you want to delete this car?</p>
-                <div className="mt-2">
-                    <button
-                        className="bg-red-500 text-white px-4 py-2 rounded mr-2"
-                        onClick={() => {
-                            handleDeleteConfirm(carId);
-                            toast.dismiss();
-                        }}
-                    >
-                        Delete
-                    </button>
-                    <button
-                        className="bg-gray-500 text-white px-4 py-2 rounded"
-                        onClick={() => toast.dismiss()}
-                    >
-                        Cancel
-                    </button>
-                </div>
-            </div>,
-            {
-                autoClose: false,
-                closeOnClick: false,
-                draggable: false,
-                closeButton: false
-            }
-        );
+        const confirmed = await confirm('Are you sure you want to delete this car? This action cannot be undone.', {
+            title: 'Delete Car',
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            confirmButtonClass: 'bg-red-600 hover:bg-red-700'
+        });
+        if (confirmed) {
+            handleDeleteConfirm(carId);
+        }
     };
 
     const handleDeleteConfirm = async (carId) => {
@@ -261,10 +252,14 @@ const CarManagement = () => {
             }
             
             fetchCars();
-            toast.success('Car deleted successfully');
+            toast.success('Car deleted successfully', {
+                title: 'Car Removed'
+            });
         } catch (err) {
             console.error('Error deleting car:', err);
-            toast.error('Failed to delete car');
+            toast.error('Failed to delete car', {
+                title: 'Delete Error'
+            });
         }
     };
 

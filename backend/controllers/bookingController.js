@@ -37,9 +37,10 @@ const createBooking = async (req, res) => {
             return res.status(400).json({ message: 'Start time must be in the future.' });
         }
 
-        // Check for conflicting bookings
+        // Check for conflicting bookings (exclude canceled and completed bookings)
         const conflictingBooking = await Booking.findOne({
             car: carId,
+            status: { $in: ['confirmed', 'pending'] }, // Only check active bookings
             $or: [
                 { startDate: { $lte: end }, endDate: { $gte: start } }
             ]
@@ -85,6 +86,17 @@ const getUserBookings = async (req, res) => {
             return res.status(401).json({ message: 'Unauthorized. Please log in again.' });
         }
 
+        // Auto-complete bookings that have passed their end date
+        const now = new Date();
+        await Booking.updateMany(
+            { 
+                user: req.user.id,
+                status: 'confirmed',
+                endDate: { $lt: now }
+            },
+            { status: 'completed' }
+        );
+
         const bookings = await Booking.find({ user: req.user.id }).populate('car');
         res.status(200).json(bookings);
     } catch (error) {
@@ -99,6 +111,16 @@ const getAllBookings = async (req, res) => {
         if (!req.user || req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied. Admins only.' });
         }
+
+        // Auto-complete bookings that have passed their end date
+        const now = new Date();
+        await Booking.updateMany(
+            { 
+                status: 'confirmed',
+                endDate: { $lt: now }
+            },
+            { status: 'completed' }
+        );
 
         // Populate the user field with username, name, and email
         const bookings = await Booking.find().populate({
@@ -126,7 +148,7 @@ const updateBookingStatus = async (req, res) => {
         const userId = req.user.id;
         const userRole = req.user.role;
 
-        if (!['pending', 'confirmed', 'canceled'].includes(status)) {
+        if (!['pending', 'confirmed', 'canceled', 'completed'].includes(status)) {
             return res.status(400).json({ message: 'Invalid status value' });
         }
 

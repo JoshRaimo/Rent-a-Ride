@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { toast } from 'react-toastify';
+import { useToast } from '../hooks/useToast';
 import { format } from 'date-fns';
-import { Eye, EyeOff, User, Mail, Shield, Calendar, DollarSign, Car, Edit2, Save, X, Trash2, Clock } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Shield, Calendar, DollarSign, Car, Edit2, Save, X, Trash2, Clock, MessageSquare } from 'lucide-react';
 import ProfilePictureUpload from '../components/ProfilePictureUpload';
+import UserReviewsSection from '../components/UserReviewsSection';
 
 const ProfilePage = ({ onUpdateUser }) => {
     const [user, setUser] = useState(null);
@@ -16,10 +17,13 @@ const ProfilePage = ({ onUpdateUser }) => {
     const [bookings, setBookings] = useState([]);
     const [loadingBookings, setLoadingBookings] = useState(true);
     const [deletingBookingId, setDeletingBookingId] = useState(null);
+    const [bookingFilter, setBookingFilter] = useState('active'); // 'active', 'completed', 'all'
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [editingProfile, setEditingProfile] = useState(false);
     const [changingPassword, setChangingPassword] = useState(false);
+    
+    const { toast, confirm } = useToast();
 
     useEffect(() => {
         const fetchUserProfile = async () => {
@@ -36,7 +40,9 @@ const ProfilePage = ({ onUpdateUser }) => {
                 setEmail(response.data.email);
             } catch (error) {
                 console.error('Error fetching profile:', error.message);
-                toast.error('Failed to fetch profile. Please log in again.');
+                toast.error('Failed to fetch profile. Please log in again.', {
+                    title: 'Authentication Error'
+                });
                 localStorage.removeItem('token');
             } finally {
                 setLoading(false);
@@ -56,7 +62,9 @@ const ProfilePage = ({ onUpdateUser }) => {
             } catch (error) {
                 console.error('Error fetching bookings:', error.response?.data?.message || error.message);
                 if (localStorage.getItem('token')) {
-                    toast.error('Failed to fetch bookings.');
+                    toast.error('Failed to fetch bookings.', {
+                        title: 'Loading Error'
+                    });
                 }
             } finally {
                 setLoadingBookings(false);
@@ -84,10 +92,14 @@ const ProfilePage = ({ onUpdateUser }) => {
             onUpdateUser(updatedUser);
             setEditingProfile(false);
 
-            toast.success('Profile updated successfully!');
+            toast.success('Profile updated successfully!', {
+                title: 'Profile Saved'
+            });
         } catch (error) {
             console.error('Error updating profile:', error.message);
-            toast.error('Failed to update profile.');
+            toast.error('Failed to update profile.', {
+                title: 'Update Error'
+            });
         } finally {
             setUpdating(false);
         }
@@ -116,13 +128,17 @@ const ProfilePage = ({ onUpdateUser }) => {
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            toast.success('Password updated successfully!');
+            toast.success('Password updated successfully!', {
+                title: 'Security Updated'
+            });
             setCurrentPassword('');
             setNewPassword('');
             setChangingPassword(false);
         } catch (error) {
             console.error('Error changing password:', error.message);
-            toast.error(error.response?.data?.message || 'Failed to change password.');
+            toast.error(error.response?.data?.message || 'Failed to change password.', {
+                title: 'Password Error'
+            });
         } finally {
             setUpdating(false);
         }
@@ -147,6 +163,8 @@ const ProfilePage = ({ onUpdateUser }) => {
         switch (status) {
             case 'confirmed':
                 return 'bg-green-100 text-green-800';
+            case 'completed':
+                return 'bg-blue-100 text-blue-800';
             case 'canceled':
                 return 'bg-red-100 text-red-800';
             case 'pending':
@@ -160,6 +178,8 @@ const ProfilePage = ({ onUpdateUser }) => {
         switch (status) {
             case 'confirmed':
                 return <Calendar className="w-4 h-4" />;
+            case 'completed':
+                return <Calendar className="w-4 h-4" />;
             case 'canceled':
                 return <X className="w-4 h-4" />;
             case 'pending':
@@ -169,35 +189,29 @@ const ProfilePage = ({ onUpdateUser }) => {
         }
     };
 
+    const getFilteredBookings = () => {
+        switch (bookingFilter) {
+            case 'active':
+                return bookings.filter(booking => ['pending', 'confirmed'].includes(booking.status));
+            case 'completed':
+                return bookings.filter(booking => booking.status === 'completed');
+            case 'all':
+                return bookings;
+            default:
+                return bookings.filter(booking => ['pending', 'confirmed'].includes(booking.status));
+        }
+    };
+
     const handleDeleteBooking = async (bookingId) => {
-        toast.info(
-            <div>
-                <p>Are you sure you want to permanently DELETE this booking? This action cannot be undone.</p>
-                <div className="mt-2">
-                    <button
-                        className="bg-red-500 text-white px-4 py-2 rounded mr-2"
-                        onClick={() => {
-                            handleDeleteConfirm(bookingId);
-                            toast.dismiss();
-                        }}
-                    >
-                        Delete
-                    </button>
-                    <button
-                        className="bg-gray-500 text-white px-4 py-2 rounded"
-                        onClick={() => toast.dismiss()}
-                    >
-                        Cancel
-                    </button>
-                </div>
-            </div>,
-            {
-                autoClose: false,
-                closeOnClick: false,
-                draggable: false,
-                closeButton: false
-            }
-        );
+        const confirmed = await confirm('Are you sure you want to permanently DELETE this booking? This action cannot be undone.', {
+            title: 'Delete Booking',
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            confirmButtonClass: 'bg-red-600 hover:bg-red-700'
+        });
+        if (confirmed) {
+            handleDeleteConfirm(bookingId);
+        }
     };
 
     const handleDeleteConfirm = async (bookingId) => {
@@ -213,10 +227,14 @@ const ProfilePage = ({ onUpdateUser }) => {
                 prevBookings.filter(booking => booking._id !== bookingId)
             );
 
-            toast.success(response.data.message || 'Booking deleted successfully!');
+            toast.success(response.data.message || 'Booking deleted successfully!', {
+                title: 'Booking Cancelled'
+            });
         } catch (error) {
             console.error('Error deleting booking:', error.response?.data?.message || error.message);
-            toast.error(error.response?.data?.message || 'Failed to delete booking.');
+            toast.error(error.response?.data?.message || 'Failed to delete booking.', {
+                title: 'Delete Error'
+            });
         } finally {
             setDeletingBookingId(null);
         }
@@ -425,12 +443,46 @@ const ProfilePage = ({ onUpdateUser }) => {
                         {/* Right Column - Bookings */}
                         <div className="lg:col-span-2">
                             <div className="bg-white rounded-xl shadow-md border border-gray-200 p-8">
-                                <div className="flex items-center mb-8">
+                                <div className="flex items-center mb-6">
                                     <Calendar className="w-7 h-7 text-blue-600 mr-3" />
                                     <h2 className="text-2xl font-semibold text-gray-900">Your Bookings</h2>
                                     <span className="ml-auto text-base text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                                        {bookings.length} {bookings.length === 1 ? 'booking' : 'bookings'}
+                                        {getFilteredBookings().length} {getFilteredBookings().length === 1 ? 'booking' : 'bookings'}
                                     </span>
+                                </div>
+
+                                {/* Booking Filter Tabs */}
+                                <div className="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg">
+                                    <button
+                                        onClick={() => setBookingFilter('active')}
+                                        className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                                            bookingFilter === 'active'
+                                                ? 'bg-white text-blue-600 shadow-sm'
+                                                : 'text-gray-600 hover:text-gray-900'
+                                        }`}
+                                    >
+                                        Active ({bookings.filter(b => ['pending', 'confirmed'].includes(b.status)).length})
+                                    </button>
+                                    <button
+                                        onClick={() => setBookingFilter('completed')}
+                                        className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                                            bookingFilter === 'completed'
+                                                ? 'bg-white text-blue-600 shadow-sm'
+                                                : 'text-gray-600 hover:text-gray-900'
+                                        }`}
+                                    >
+                                        Completed ({bookings.filter(b => b.status === 'completed').length})
+                                    </button>
+                                    <button
+                                        onClick={() => setBookingFilter('all')}
+                                        className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                                            bookingFilter === 'all'
+                                                ? 'bg-white text-blue-600 shadow-sm'
+                                                : 'text-gray-600 hover:text-gray-900'
+                                        }`}
+                                    >
+                                        All ({bookings.length})
+                                    </button>
                                 </div>
 
                                 {loadingBookings ? (
@@ -438,15 +490,24 @@ const ProfilePage = ({ onUpdateUser }) => {
                                         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
                                         <p className="ml-4 text-gray-600 text-lg">Loading bookings...</p>
                                     </div>
-                                ) : bookings.length === 0 ? (
+                                ) : getFilteredBookings().length === 0 ? (
                                     <div className="text-center py-16">
                                         <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-6" />
-                                        <p className="text-gray-500 text-xl font-medium mb-2">No bookings found</p>
-                                        <p className="text-gray-400 text-base">Your car rental bookings will appear here</p>
+                                        <p className="text-gray-500 text-xl font-medium mb-2">
+                                            No {bookingFilter === 'all' ? '' : bookingFilter + ' '}bookings found
+                                        </p>
+                                        <p className="text-gray-400 text-base">
+                                            {bookingFilter === 'active' 
+                                                ? 'Your upcoming and current car rentals will appear here'
+                                                : bookingFilter === 'completed'
+                                                ? 'Your past car rentals will appear here'
+                                                : 'Your car rental bookings will appear here'
+                                            }
+                                        </p>
                                     </div>
                                 ) : (
                                     <div className="space-y-6">
-                                        {bookings.map((booking) => (
+                                        {getFilteredBookings().map((booking) => (
                                             <div key={booking._id} className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-200">
                                                 <div className="flex items-start justify-between">
                                                     <div className="flex-1">
@@ -502,6 +563,9 @@ const ProfilePage = ({ onUpdateUser }) => {
                                     </div>
                                 )}
                             </div>
+
+                            {/* Reviews Section */}
+                            <UserReviewsSection user={user} />
                         </div>
                     </div>
                 )}

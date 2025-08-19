@@ -3,14 +3,16 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { parseISO } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
-import { toast } from 'react-toastify';
+import { useToast } from '../hooks/useToast';
 import { useAuthModal } from '../contexts/AuthModalContext';
 import CarListing from '../components/CarListing';
+import ReviewDisplay from '../components/ReviewDisplay';
 
 const BookCar = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const { notifyBookingMade } = useAuthModal();
+    const { toast } = useToast();
     const EST_TIMEZONE = 'America/New_York';
     
     const car = location.state?.car || null;
@@ -46,7 +48,9 @@ const BookCar = () => {
             const formattedEndTime = parseTime(endTime);
 
             if (!formattedStartTime || !formattedEndTime) {
-                toast.error('Invalid time format. Please re-select the start and end times.');
+                toast.error('Invalid time format. Please re-select the start and end times.', {
+                    title: 'Invalid Time'
+                });
                 return;
             }
 
@@ -70,7 +74,13 @@ const BookCar = () => {
             });
 
             // Show success message
-            toast.success('Booking confirmed successfully!');
+            toast.success('Booking confirmed successfully!', {
+                title: 'Booking Confirmed',
+                action: {
+                    label: 'View Profile',
+                    onClick: () => navigate('/profile')
+                }
+            });
             notifyBookingMade(); // Call the new hook function
 
             // Add a small delay before navigation to ensure the toast is visible
@@ -80,7 +90,9 @@ const BookCar = () => {
 
         } catch (error) {
             console.error('Error confirming booking:', error);
-            toast.error(error.response?.data?.message || 'Failed to confirm booking. Please try again.');
+            toast.error(error.response?.data?.message || 'Failed to confirm booking. Please try again.', {
+                title: 'Booking Error'
+            });
         }
     };
 
@@ -210,6 +222,11 @@ const BookCar = () => {
                             <p>By confirming, you agree to our rental terms and conditions</p>
                         </div>
                     </div>
+                </div>
+
+                {/* Car Reviews Section */}
+                <div className="mt-12">
+                    <ReviewDisplay carId={carId} showTitle={true} />
                 </div>
             </div>
         </div>

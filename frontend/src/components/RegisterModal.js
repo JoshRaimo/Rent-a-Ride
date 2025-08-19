@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { toast } from 'react-toastify';
+import { useToast } from '../hooks/useToast';
 import { FaEye, FaEyeSlash, FaTimes } from 'react-icons/fa';
-import 'react-toastify/dist/ReactToastify.css';
+
 
 const RegisterModal = ({ isOpen, onClose, onShowLogin }) => {
     const [formData, setFormData] = useState({ username: '', email: '', password: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    
+    const { toast } = useToast();
 
     const handleChange = (e) =>
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -28,7 +30,13 @@ const RegisterModal = ({ isOpen, onClose, onShowLogin }) => {
             );
 
             // Show success toast
-            toast.success(response.data.message || 'Registration successful!');
+            toast.success(response.data.message || 'Registration successful!', {
+                title: 'Welcome!',
+                action: {
+                    label: 'Login Now',
+                    onClick: onShowLogin
+                }
+            });
 
             // Close modal and reset form
             onClose();
@@ -43,10 +51,14 @@ const RegisterModal = ({ isOpen, onClose, onShowLogin }) => {
             console.error('Registration error:', err.response?.data?.error || 'Registration failed');
             if (!err.response) {
                 setError('Network error. Please check your connection.');
-                toast.error('Network error. Please check your connection.');
+                toast.error('Network error. Please check your connection.', {
+                    title: 'Connection Error'
+                });
             } else {
                 setError(err.response.data.error || 'Registration failed. Please try again.');
-                toast.error(err.response.data.error || 'Registration failed.');
+                toast.error(err.response.data.error || 'Registration failed.', {
+                    title: 'Registration Error'
+                });
             }
         } finally {
             setLoading(false);

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { User, Mail, Shield, Edit2, Save, X } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { useToast } from '../hooks/useToast';
 import ProfilePictureUpload from './ProfilePictureUpload';
 
 const UserProfile = () => {
+    const { toast } = useToast();
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [editing, setEditing] = useState(false);
@@ -34,7 +35,9 @@ const UserProfile = () => {
             });
         } catch (error) {
             console.error('Error fetching user profile:', error);
-            toast.error('Failed to load profile');
+            toast.error('Failed to load profile', {
+                title: 'Loading Error'
+            });
         } finally {
             setLoading(false);
         }
@@ -64,10 +67,14 @@ const UserProfile = () => {
             );
             setUser(response.data.user);
             setEditing(false);
-            toast.success('Profile updated successfully!');
+            toast.success('Profile updated successfully!', {
+                title: 'Profile Updated'
+            });
         } catch (error) {
             console.error('Error updating profile:', error);
-            toast.error('Failed to update profile');
+            toast.error('Failed to update profile', {
+                title: 'Update Failed'
+            });
         }
     };
 

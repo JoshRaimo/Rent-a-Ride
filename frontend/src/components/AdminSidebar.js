@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Car, Calendar } from 'lucide-react';
+import { LayoutDashboard, Users, Car, Calendar, MessageSquare } from 'lucide-react';
 
 const AdminSidebar = () => {
     return (
@@ -71,6 +71,22 @@ const AdminSidebar = () => {
                     <Calendar className="w-6 h-6" />
                     <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
                         Bookings
+                    </div>
+                </NavLink>
+
+                <NavLink
+                    to="/admin-dashboard/reviews"
+                    className={({ isActive }) =>
+                        `group relative flex items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 ${
+                            isActive 
+                                ? 'bg-blue-100 text-blue-600 shadow-md' 
+                                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                        }`
+                    }
+                >
+                    <MessageSquare className="w-6 h-6" />
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                        Reviews
                     </div>
                 </NavLink>
             </nav>

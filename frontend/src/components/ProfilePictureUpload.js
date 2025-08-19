@@ -1,12 +1,14 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import { Camera, Upload, Trash2, User, Loader } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { useToast } from '../hooks/useToast';
 
 const ProfilePictureUpload = ({ user, onProfileUpdate }) => {
     const [uploading, setUploading] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const fileInputRef = useRef(null);
+    
+    const { toast } = useToast();
 
     const handleFileSelect = (event) => {
         const file = event.target.files[0];
@@ -19,14 +21,18 @@ const ProfilePictureUpload = ({ user, onProfileUpdate }) => {
         // Validate file type
         const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
         if (!allowedTypes.includes(file.type)) {
-            toast.error('Please select a valid image file (JPEG, PNG, WEBP, or GIF)');
+            toast.error('Please select a valid image file (JPEG, PNG, WEBP, or GIF)', {
+                title: 'Invalid File Type'
+            });
             return;
         }
 
         // Validate file size (5MB)
         const maxSize = 5 * 1024 * 1024; // 5MB
         if (file.size > maxSize) {
-            toast.error('File size must be less than 5MB');
+            toast.error('File size must be less than 5MB', {
+                title: 'File Too Large'
+            });
             return;
         }
 
@@ -47,7 +53,9 @@ const ProfilePictureUpload = ({ user, onProfileUpdate }) => {
                 }
             );
 
-            toast.success('Profile picture updated successfully!');
+            toast.success('Profile picture updated successfully!', {
+                title: 'Picture Updated'
+            });
             
             // Update the user data in parent component
             if (onProfileUpdate && response.data.user) {
@@ -56,7 +64,9 @@ const ProfilePictureUpload = ({ user, onProfileUpdate }) => {
 
         } catch (error) {
             console.error('Error uploading profile picture:', error);
-            toast.error(error.response?.data?.error || 'Failed to upload profile picture');
+            toast.error(error.response?.data?.error || 'Failed to upload profile picture', {
+                title: 'Upload Failed'
+            });
         } finally {
             setUploading(false);
             // Reset file input
@@ -68,7 +78,9 @@ const ProfilePictureUpload = ({ user, onProfileUpdate }) => {
 
     const handleDelete = async () => {
         if (!user?.profilePicture) {
-            toast.error('No profile picture to delete');
+            toast.error('No profile picture to delete', {
+                title: 'Nothing to Delete'
+            });
             return;
         }
 
@@ -84,7 +96,9 @@ const ProfilePictureUpload = ({ user, onProfileUpdate }) => {
                 }
             );
 
-            toast.success('Profile picture removed successfully!');
+            toast.success('Profile picture removed successfully!', {
+                title: 'Picture Removed'
+            });
             
             // Update the user data in parent component
             if (onProfileUpdate && response.data.user) {
@@ -93,7 +107,9 @@ const ProfilePictureUpload = ({ user, onProfileUpdate }) => {
 
         } catch (error) {
             console.error('Error deleting profile picture:', error);
-            toast.error(error.response?.data?.error || 'Failed to delete profile picture');
+            toast.error(error.response?.data?.error || 'Failed to delete profile picture', {
+                title: 'Delete Failed'
+            });
         } finally {
             setDeleting(false);
         }

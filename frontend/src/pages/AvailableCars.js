@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { useToast } from '../hooks/useToast';
+
 import CarListing from '../components/CarListing';
 import { Range } from 'react-range';
 import { formatInTimeZone, toDate } from 'date-fns-tz';

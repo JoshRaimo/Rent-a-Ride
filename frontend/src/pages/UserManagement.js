@@ -3,12 +3,14 @@ import axios from 'axios';
 import { Search, Users, Shield, Mail, Trash2, RotateCcw, UserCheck } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
 import ProfileAvatar from '../components/ProfileAvatar';
-import { toast } from 'react-toastify';
+import { useToast } from '../hooks/useToast';
 
 const UserManagement = () => {
     const [users, setUsers] = useState([]);
     const [search, setSearch] = useState('');
     const [error, setError] = useState('');
+    
+    const { toast, confirm } = useToast();
 
     useEffect(() => {
         fetchUsers();
@@ -39,42 +41,27 @@ const UserManagement = () => {
                     },
                 }
             );
-            toast.success(response.data.message);
+            toast.success(response.data.message, {
+                title: 'Password Reset'
+            });
         } catch (err) {
             console.error('Error resetting password:', err);
-            toast.error(err.response?.data?.message || 'Failed to reset password');
+            toast.error(err.response?.data?.message || 'Failed to reset password', {
+                title: 'Reset Error'
+            });
         }
     };
 
     const deleteUser = async (userId) => {
-        toast.info(
-            <div>
-                <p>Are you sure you want to delete this user?</p>
-                <div className="mt-2">
-                    <button
-                        className="bg-red-500 text-white px-4 py-2 rounded mr-2"
-                        onClick={() => {
-                            handleDeleteConfirm(userId);
-                            toast.dismiss();
-                        }}
-                    >
-                        Delete
-                    </button>
-                    <button
-                        className="bg-gray-500 text-white px-4 py-2 rounded"
-                        onClick={() => toast.dismiss()}
-                    >
-                        Cancel
-                    </button>
-                </div>
-            </div>,
-            {
-                autoClose: false,
-                closeOnClick: false,
-                draggable: false,
-                closeButton: false
-            }
-        );
+        const confirmed = await confirm('Are you sure you want to delete this user? This action cannot be undone.', {
+            title: 'Delete User',
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            confirmButtonClass: 'bg-red-600 hover:bg-red-700'
+        });
+        if (confirmed) {
+            handleDeleteConfirm(userId);
+        }
     };
 
     const handleDeleteConfirm = async (userId) => {
@@ -85,10 +72,14 @@ const UserManagement = () => {
                 },
             });
             fetchUsers(); // Refresh users list
-            toast.success('User deleted successfully');
+            toast.success('User deleted successfully', {
+                title: 'User Removed'
+            });
         } catch (err) {
             console.error('Error deleting user:', err);
-            toast.error('Failed to delete user');
+            toast.error('Failed to delete user', {
+                title: 'Delete Error'
+            });
         }
     };
 

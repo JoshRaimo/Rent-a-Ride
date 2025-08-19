@@ -6,6 +6,7 @@ import AdminSidebar from '../components/AdminSidebar';
 import CarManagement from './CarManagement';
 import UserManagement from './UserManagement';
 import BookingManagement from './BookingManagement';
+import ReviewManagement from './ReviewManagement';
 
 const AdminDashboard = () => {
     const [userCount, setUserCount] = useState(null);
@@ -181,6 +182,7 @@ const AdminDashboard = () => {
                     <Route path="cars" element={<CarManagement />} />
                     <Route path="users" element={<UserManagement />} />
                     <Route path="bookings" element={<BookingManagement />} />
+                    <Route path="reviews" element={<ReviewManagement />} />
                 </Routes>
             </div>
         </div>

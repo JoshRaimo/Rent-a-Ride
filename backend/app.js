@@ -12,6 +12,7 @@ const bookingRoutes = require('./routes/bookingRoutes');
 const jwtRoutes = require('./routes/jwtRoutes');
 const imageRoutes = require('./routes/imageRoutes');
 const profileImageRoutes = require('./routes/profileImageRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
 const statsRoutes = require('./routes/statsRoutes');
 
 const app = express();
@@ -52,6 +53,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/jwt', jwtRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/profile-images', profileImageRoutes);
+app.use('/api/reviews', reviewRoutes);
 app.use('/api/stats', statsRoutes);
 
 // Error handling middleware

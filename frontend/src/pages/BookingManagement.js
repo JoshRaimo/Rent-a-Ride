@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Calendar, Filter, CheckCircle, XCircle, Trash2, Clock, DollarSign, User, Car } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
-import { toast } from 'react-toastify';
+import { useToast } from '../hooks/useToast';
 
 const BookingManagement = () => {
     const [bookings, setBookings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [filter, setFilter] = useState('all'); // Filter: all, pending, confirmed, canceled
+    
+    const { toast, confirm } = useToast();
 
     useEffect(() => {
         fetchBookings();
@@ -42,42 +44,27 @@ const BookingManagement = () => {
                 }
             );
             fetchBookings(); // Refresh bookings list
-            toast.success(`Booking ${status} successfully`);
+            toast.success(`Booking ${status} successfully`, {
+                title: 'Status Updated'
+            });
         } catch (err) {
             console.error('Error updating booking status:', err);
-            toast.error('Failed to update booking status');
+            toast.error('Failed to update booking status', {
+                title: 'Update Error'
+            });
         }
     };
 
     const deleteBooking = async (bookingId) => {
-        toast.info(
-            <div>
-                <p>Are you sure you want to delete this booking?</p>
-                <div className="mt-2">
-                    <button
-                        className="bg-red-500 text-white px-4 py-2 rounded mr-2"
-                        onClick={() => {
-                            handleDeleteConfirm(bookingId);
-                            toast.dismiss();
-                        }}
-                    >
-                        Delete
-                    </button>
-                    <button
-                        className="bg-gray-500 text-white px-4 py-2 rounded"
-                        onClick={() => toast.dismiss()}
-                    >
-                        Cancel
-                    </button>
-                </div>
-            </div>,
-            {
-                autoClose: false,
-                closeOnClick: false,
-                draggable: false,
-                closeButton: false
-            }
-        );
+        const confirmed = await confirm('Are you sure you want to delete this booking? This action cannot be undone.', {
+            title: 'Delete Booking',
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            confirmButtonClass: 'bg-red-600 hover:bg-red-700'
+        });
+        if (confirmed) {
+            handleDeleteConfirm(bookingId);
+        }
     };
 
     const handleDeleteConfirm = async (bookingId) => {
@@ -88,10 +75,14 @@ const BookingManagement = () => {
                 },
             });
             fetchBookings(); // Refresh bookings list
-            toast.success('Booking deleted successfully');
+            toast.success('Booking deleted successfully', {
+                title: 'Booking Removed'
+            });
         } catch (err) {
             console.error('Error deleting booking:', err);
-            toast.error('Failed to delete booking');
+            toast.error('Failed to delete booking', {
+                title: 'Delete Error'
+            });
         }
     };
 
@@ -119,6 +110,8 @@ const BookingManagement = () => {
         switch (status) {
             case 'confirmed':
                 return 'bg-green-100 text-green-800';
+            case 'completed':
+                return 'bg-blue-100 text-blue-800';
             case 'canceled':
                 return 'bg-red-100 text-red-800';
             case 'pending':
@@ -131,6 +124,8 @@ const BookingManagement = () => {
     const getStatusIcon = (status) => {
         switch (status) {
             case 'confirmed':
+                return <CheckCircle className="w-4 h-4" />;
+            case 'completed':
                 return <CheckCircle className="w-4 h-4" />;
             case 'canceled':
                 return <XCircle className="w-4 h-4" />;
@@ -173,6 +168,7 @@ const BookingManagement = () => {
                                 <option value="all">All Bookings</option>
                                 <option value="pending">Pending</option>
                                 <option value="confirmed">Confirmed</option>
+                                <option value="completed">Completed</option>
                                 <option value="canceled">Canceled</option>
                             </select>
                         </div>
@@ -184,6 +180,10 @@ const BookingManagement = () => {
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 bg-green-400 rounded-full"></div>
                                 <span>Confirmed: {bookings.filter(b => b.status === 'confirmed').length}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+                                <span>Completed: {bookings.filter(b => b.status === 'completed').length}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="w-3 h-3 bg-red-400 rounded-full"></div>

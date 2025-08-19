@@ -120,7 +120,10 @@ const getAvailableCars = async (req, res) => {
         }).distinct('car');
 
         // Build the filter object
-        let filter = { _id: { $nin: bookedCarIds } };
+        let filter = { 
+            _id: { $nin: bookedCarIds },
+            availabilityStatus: true // Only include cars marked as available
+        };
 
         // Add price range filter
         if (priceMin || priceMax) {
@@ -147,7 +150,20 @@ const getAvailableCars = async (req, res) => {
         // Fetch available cars with all filters applied
         const availableCars = await Car.find(filter);
 
-        res.status(200).json(availableCars);
+        // Format cars to match the expected structure
+        const formattedCars = availableCars.map(car => ({
+            carId: car._id,
+            make: car.make,
+            model: car.model,
+            year: car.year,
+            pricePerDay: car.pricePerDay,
+            availabilityStatus: car.availabilityStatus,
+            image: car.image,
+            averageRating: car.averageRating,
+            reviewCount: car.reviewCount
+        }));
+
+        res.status(200).json(formattedCars);
     } catch (err) {
         console.error('Error fetching available cars:', err.message);
         res.status(500).json({ error: 'Failed to fetch available cars', details: err.message });
@@ -241,6 +257,7 @@ const getPriceRange = async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch price range', details: err.message });
     }
 };
+
 
 // Add a new car
 const addCar = async (req, res) => {
