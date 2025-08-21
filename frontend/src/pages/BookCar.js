@@ -83,6 +83,15 @@ const BookCar = () => {
             });
             notifyBookingMade(); // Call the new hook function
 
+            // Dispatch event to notify other pages about the booking status change
+            window.dispatchEvent(new CustomEvent('bookingStatusChanged', {
+                detail: {
+                    status: 'confirmed',
+                    bookingId: response.data.booking._id,
+                    carId: carId
+                }
+            }));
+
             // Add a small delay before navigation to ensure the toast is visible
             setTimeout(() => {
                 navigate('/'); // Redirect to homepage

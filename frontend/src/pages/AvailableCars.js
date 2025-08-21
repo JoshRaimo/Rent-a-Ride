@@ -143,12 +143,12 @@ const AvailableCars = ({ isAuthenticated }) => {
                 adjustedMaxYear = Math.min(currentYear + 1, maxYear + 1);
             }
             
-            const newYearRange = { 
-                minYear: adjustedMinYear, 
-                maxYear: adjustedMaxYear, 
-                nextYear, 
-                currentYear, 
-                availableYears 
+            const newYearRange = {
+                minYear: adjustedMinYear,
+                maxYear: adjustedMaxYear,
+                nextYear,
+                currentYear,
+                availableYears
             };
             
             if (shouldRefreshYearRange(newYearRange)) {
@@ -385,6 +385,47 @@ const AvailableCars = ({ isAuthenticated }) => {
         }
     }, [filters, loading, hasInitialized]); // Removed cars dependency
 
+    // Dedicated function for refreshing when booking status changes
+    const refreshForBookingStatusChange = useCallback(async () => {
+        if (!filters.startDate || !filters.endDate) {
+            return;
+        }
+
+        setFilterLoading(true);
+        setError(null);
+
+        try {
+            const cleanedFilters = {
+                startDate: filters.startDate,
+                endDate: filters.endDate,
+                startTime: filters.startTime,
+                endTime: filters.endTime,
+                priceMin: filters.priceRange[0],
+                priceMax: filters.priceRange[1],
+                yearMin: filters.yearRange ? filters.yearRange[0] : undefined,
+                yearMax: filters.yearRange ? filters.yearRange[1] : undefined,
+                make: filters.make?.trim() || undefined,
+                model: filters.model?.trim() || undefined,
+                // Add cache-busting parameter to ensure fresh data
+                _t: Date.now()
+            };
+
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/cars/available`, {
+                params: cleanedFilters
+            });
+
+            const newCars = response.data || [];
+            carsRef.current = newCars;
+            setCars(newCars);
+            
+        } catch (err) {
+            console.error('Error refreshing available cars after booking status change:', err);
+            setError('Failed to refresh available cars.');
+        } finally {
+            setFilterLoading(false);
+        }
+    }, [filters]);
+
     // Consolidated initialization effect - prevents cascading re-renders
     useEffect(() => {
         const initializePage = async () => {
@@ -416,32 +457,34 @@ const AvailableCars = ({ isAuthenticated }) => {
                     }));
                 }
                 
+                // Get the current filter values for initialization
+                const currentStartDate = location.state?.startDate || todayFormatted;
+                const currentEndDate = location.state?.endDate || (() => {
+                    const tomorrow = toDate(new Date(today), { timeZone: EST_TIMEZONE });
+                    tomorrow.setDate(today.getDate() + 1);
+                    return formatInTimeZone(tomorrow, EST_TIMEZONE, 'yyyy-MM-dd');
+                })();
+                const currentStartTime = location.state?.startTime || '12:00 PM';
+                const currentEndTime = location.state?.endTime || 'Midnight';
+
                 // Fetch all initial data in parallel
                 const [yearRangeResponse, priceRangeResponse, makesResponse, initialCarsResponse] = await Promise.all([
                     axios.get(`${process.env.REACT_APP_API_URL}/cars/year-range`),
                     axios.get(`${process.env.REACT_APP_API_URL}/cars/price-range`),
                     axios.get(`${process.env.REACT_APP_API_URL}/cars/available`, {
                         params: {
-                            startDate: todayFormatted,
-                            endDate: (() => {
-                                const tomorrow = toDate(new Date(today), { timeZone: EST_TIMEZONE });
-                                tomorrow.setDate(today.getDate() + 1);
-                                return formatInTimeZone(tomorrow, EST_TIMEZONE, 'yyyy-MM-dd');
-                            })(),
-                            startTime: '12:00 PM',
-                            endTime: 'Midnight'
+                            startDate: currentStartDate,
+                            endDate: currentEndDate,
+                            startTime: currentStartTime,
+                            endTime: currentEndTime
                         }
                     }),
                     axios.get(`${process.env.REACT_APP_API_URL}/cars/available`, {
                         params: {
-                            startDate: todayFormatted,
-                            endDate: (() => {
-                                const tomorrow = toDate(new Date(today), { timeZone: EST_TIMEZONE });
-                                tomorrow.setDate(today.getDate() + 1);
-                                return formatInTimeZone(tomorrow, EST_TIMEZONE, 'yyyy-MM-dd');
-                            })(),
-                            startTime: '12:00 PM',
-                            endTime: 'Midnight'
+                            startDate: currentStartDate,
+                            endDate: currentEndDate,
+                            startTime: currentStartTime,
+                            endTime: currentEndTime
                         }
                     })
                 ]);
@@ -503,6 +546,15 @@ const AvailableCars = ({ isAuthenticated }) => {
                 carsRef.current = initialCarsResponse.data;
                 setCars(initialCarsResponse.data);
                 
+                // Ensure filters are properly set to match the data we just fetched
+                setFilters(prev => ({
+                    ...prev,
+                    startDate: currentStartDate,
+                    endDate: currentEndDate,
+                    startTime: currentStartTime,
+                    endTime: currentEndTime
+                }));
+                
                 // Mark filters as initialized to prevent unnecessary filter change detection
                 filtersInitializedRef.current = true;
                 
@@ -518,7 +570,7 @@ const AvailableCars = ({ isAuthenticated }) => {
         if (!hasInitialized) {
             initializePage();
         }
-    }, [hasInitialized, getCachedYearRange, getCachedPriceRange, cacheYearRange, cachePriceRange, todayFormatted, today, EST_TIMEZONE]);
+    }, [hasInitialized, getCachedYearRange, getCachedPriceRange, cacheYearRange, cachePriceRange, todayFormatted, today, EST_TIMEZONE, location.state]);
     
     // Watch for filter changes and auto-search - optimized to prevent flickering
     useEffect(() => {
@@ -593,6 +645,46 @@ const AvailableCars = ({ isAuthenticated }) => {
         window.addEventListener('focus', handleFocus);
         return () => window.removeEventListener('focus', handleFocus);
     }, [hasInitialized, filters.startDate, filters.endDate, fetchAvailableCars, getCachedYearRange, refreshYearRangeCache]);
+
+    // Listen for booking status changes from other pages (like BookingManagement)
+    useEffect(() => {
+        const handleBookingStatusChange = (event) => {
+            const { status, bookingId } = event.detail;
+            
+            // Refresh available cars for status changes
+            // - When confirmed: car becomes unavailable (removed from list)
+            // - When canceled: car becomes available (added to list)
+            // - When deleted: car becomes available (added to list)
+            if ((status === 'confirmed' || status === 'canceled' || status === 'deleted') && hasInitialized) {
+                // Add a longer delay to ensure the backend has processed the status change
+                setTimeout(() => {
+                    refreshForBookingStatusChange();
+                }, 1000);
+            }
+        };
+
+        window.addEventListener('bookingStatusChanged', handleBookingStatusChange);
+        
+        return () => {
+            window.removeEventListener('bookingStatusChanged', handleBookingStatusChange);
+        };
+    }, [hasInitialized, refreshForBookingStatusChange]);
+
+    // Additional check for booking status changes when page becomes visible
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (!document.hidden && hasInitialized && filters.startDate && filters.endDate) {
+                // When page becomes visible, refresh to ensure we have the latest data
+                refreshForBookingStatusChange();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [hasInitialized, filters.startDate, filters.endDate]);
 
     const handleBookNow = useCallback((car) => {
         navigate('/book-car', { 
@@ -1002,21 +1094,21 @@ const AvailableCars = ({ isAuthenticated }) => {
                         </div>
                     </div>
 
-                    {/* Reset Filters Button */}
-                    <button
-                        onClick={handleFilterReset}
-                        className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-md transition duration-200 mb-3"
-                    >
-                        Reset Filters
-                    </button>
-                    
-                    {/* Search Button */}
-                    <button
-                        onClick={fetchAvailableCars}
-                        className="w-full bg-primary-color hover:bg-primary-color-dark text-white font-semibold py-2 px-4 rounded-md transition duration-200"
-                    >
-                        Search Cars
-                    </button>
+                     {/* Reset Filters Button */}
+                     <button
+                         onClick={handleFilterReset}
+                         className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-md transition duration-200 mb-3"
+                     >
+                         Reset Filters
+                     </button>
+                     
+                     {/* Search Button */}
+                     <button
+                         onClick={fetchAvailableCars}
+                         className="w-full bg-primary-color hover:bg-primary-color-dark text-white font-semibold py-2 px-4 rounded-md transition duration-200"
+                     >
+                         Search Cars
+                     </button>
                 </div>
 
                 {/* Main Content */}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Calendar, Filter, CheckCircle, XCircle, Trash2, Clock, DollarSign, User, Car } from 'lucide-react';
+import { Calendar, Filter, CheckCircle, XCircle, Trash2, Clock, DollarSign, User, Car, MessageSquare, Mail } from 'lucide-react';
 import AdminSidebar from '../components/AdminSidebar';
 import { useToast } from '../hooks/useToast';
 
@@ -47,6 +47,14 @@ const BookingManagement = () => {
             toast.success(`Booking ${status} successfully`, {
                 title: 'Status Updated'
             });
+
+            // Dispatch event to notify other pages about the booking status change
+            window.dispatchEvent(new CustomEvent('bookingStatusChanged', {
+                detail: {
+                    status: status,
+                    bookingId: bookingId
+                }
+            }));
         } catch (err) {
             console.error('Error updating booking status:', err);
             toast.error('Failed to update booking status', {
@@ -78,10 +86,73 @@ const BookingManagement = () => {
             toast.success('Booking deleted successfully', {
                 title: 'Booking Removed'
             });
+
+            // Dispatch event to notify other pages about the booking deletion
+            // This will make the car available again
+            window.dispatchEvent(new CustomEvent('bookingStatusChanged', {
+                detail: {
+                    status: 'deleted',
+                    bookingId: bookingId
+                }
+            }));
         } catch (err) {
             console.error('Error deleting booking:', err);
             toast.error('Failed to delete booking', {
                 title: 'Delete Error'
+            });
+        }
+    };
+
+    const viewBookingReviews = async (booking) => {
+        try {
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/reviews/booking/${booking._id}`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
+            
+            if (response.data.reviews && response.data.reviews.length > 0) {
+                const review = response.data.reviews[0];
+                toast.info(`Review: ${review.rating}/5 stars${review.comment ? ` - "${review.comment}"` : ''}`, {
+                    title: 'Customer Review',
+                    duration: 5000
+                });
+            } else {
+                toast.info('No review submitted for this rental yet.', {
+                    title: 'No Review'
+                });
+            }
+        } catch (err) {
+            console.error('Error fetching booking reviews:', err);
+            toast.error('Failed to fetch review', {
+                title: 'Review Error'
+            });
+        }
+    };
+
+
+
+    const contactCustomer = (booking) => {
+        const email = booking.user?.email;
+        if (email) {
+            // Open default email client with pre-filled details
+            const subject = encodeURIComponent(`Regarding your rental - ${booking.car?.make} ${booking.car?.model}`);
+            const body = encodeURIComponent(`Hello ${booking.user?.username || 'there'},
+
+I'm contacting you regarding your recent rental of the ${booking.car?.year} ${booking.car?.make} ${booking.car?.model} from ${formatDateTime(booking.startDate)} to ${formatDateTime(booking.endDate)}.
+
+Please let me know if you have any questions or feedback about your experience.
+
+Best regards,
+Rent-a-Ride Team`);
+            
+            window.open(`mailto:${email}?subject=${subject}&body=${body}`);
+            toast.success('Email client opened', {
+                title: 'Contact Customer'
+            });
+        } else {
+            toast.error('No email address available for this customer', {
+                title: 'Contact Error'
             });
         }
     };
@@ -265,23 +336,57 @@ const BookingManagement = () => {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                                     <div className="flex gap-2">
-                                                        <button
-                                                            className="inline-flex items-center px-3 py-1 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
-                                                            onClick={() => updateBookingStatus(booking._id, 'confirmed')}
-                                                        >
-                                                            <CheckCircle className="w-4 h-4 mr-1" />
-                                                            Confirm
-                                                        </button>
-                                                        <button
-                                                            className="inline-flex items-center px-3 py-1 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 transition-colors"
-                                                            onClick={() => updateBookingStatus(booking._id, 'canceled')}
-                                                        >
-                                                            <XCircle className="w-4 h-4 mr-1" />
-                                                            Cancel
-                                                        </button>
+                                                        {/* Show Confirm button for non-confirmed, non-completed bookings (including canceled) */}
+                                                        {booking.status !== 'confirmed' && booking.status !== 'completed' && (
+                                                            <button
+                                                                className="inline-flex items-center px-3 py-1 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
+                                                                onClick={() => updateBookingStatus(booking._id, 'confirmed')}
+                                                                title={booking.status === 'canceled' ? "Re-confirm this canceled booking" : "Confirm this booking"}
+                                                            >
+                                                                <CheckCircle className="w-4 h-4 mr-1" />
+                                                                {booking.status === 'canceled' ? 'Re-confirm' : 'Confirm'}
+                                                            </button>
+                                                        )}
+                                                        
+                                                        {/* Show Cancel button only for confirmed bookings */}
+                                                        {booking.status === 'confirmed' && (
+                                                            <button
+                                                                className="inline-flex items-center px-3 py-1 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 transition-colors"
+                                                                onClick={() => updateBookingStatus(booking._id, 'canceled')}
+                                                                title="Cancel this confirmed booking"
+                                                            >
+                                                                <XCircle className="w-4 h-4 mr-1" />
+                                                                Cancel
+                                                            </button>
+                                                        )}
+                                                        
+                                                        {/* Show action buttons for completed bookings */}
+                                                        {booking.status === 'completed' && (
+                                                            <>
+                                                                <button
+                                                                    className="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                                                                    onClick={() => viewBookingReviews(booking)}
+                                                                    title="View customer review for this rental"
+                                                                >
+                                                                    <MessageSquare className="w-4 h-4 mr-1" />
+                                                                    Reviews
+                                                                </button>
+                                                                <button
+                                                                    className="inline-flex items-center px-3 py-1 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors"
+                                                                    onClick={() => contactCustomer(booking)}
+                                                                    title="Contact customer via email"
+                                                                >
+                                                                    <Mail className="w-4 h-4 mr-1" />
+                                                                    Contact
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                        
+                                                        {/* Always show Delete button */}
                                                         <button
                                                             className="inline-flex items-center px-3 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
                                                             onClick={() => deleteBooking(booking._id)}
+                                                            title="Delete this booking permanently"
                                                         >
                                                             <Trash2 className="w-4 h-4" />
                                                         </button>

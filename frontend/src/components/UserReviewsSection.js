@@ -104,11 +104,18 @@ const UserReviewsSection = ({ user }) => {
     };
 
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
+        if (!dateString) return 'Invalid Date';
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return 'Invalid Date';
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        } catch (error) {
+            return 'Invalid Date';
+        }
     };
 
     const pendingReviews = completedBookings.filter(booking => booking.canReview && !booking.hasReviewed);
@@ -185,12 +192,19 @@ const UserReviewsSection = ({ user }) => {
                             {reviews.map((review) => (
                                 <div key={review._id} className="border border-gray-200 rounded-lg p-4">
                                     <div className="flex items-start gap-4">
-                                        {review.car?.image && (
+                                        {review.car?.image ? (
                                             <img
                                                 src={review.car.image}
                                                 alt={`${review.car.make} ${review.car.model}`}
                                                 className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                }}
                                             />
+                                        ) : (
+                                            <div className="w-16 h-16 bg-gray-200 rounded-lg flex-shrink-0 flex items-center justify-center">
+                                                <Car className="w-8 h-8 text-gray-400" />
+                                            </div>
                                         )}
                                         <div className="flex-1">
                                             <div className="flex items-center justify-between mb-2">
@@ -214,7 +228,7 @@ const UserReviewsSection = ({ user }) => {
                                                 </span>
                                                 <span className="flex items-center gap-1">
                                                     <DollarSign className="w-4 h-4" />
-                                                    ${review.booking?.totalPrice}
+                                                    ${review.booking?.totalPrice || 'N/A'}
                                                 </span>
                                             </div>
                                         </div>
@@ -243,12 +257,19 @@ const UserReviewsSection = ({ user }) => {
                                 <div key={booking._id} className="border border-gray-200 rounded-lg p-4">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-4">
-                                            {booking.car?.image && (
+                                            {booking.car?.image ? (
                                                 <img
                                                     src={booking.car.image}
                                                     alt={`${booking.car.make} ${booking.car.model}`}
                                                     className="w-16 h-16 object-cover rounded-lg"
+                                                    onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                    }}
                                                 />
+                                            ) : (
+                                                <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                                                    <Car className="w-8 h-8 text-gray-400" />
+                                                </div>
                                             )}
                                             <div>
                                                 <h4 className="font-semibold text-gray-900">
@@ -258,7 +279,7 @@ const UserReviewsSection = ({ user }) => {
                                                     {formatDate(booking.startDate)} - {formatDate(booking.endDate)}
                                                 </p>
                                                 <p className="text-sm text-gray-500">
-                                                    Total: ${booking.totalPrice}
+                                                    Total: ${booking.totalPrice || 'N/A'}
                                                 </p>
                                             </div>
                                         </div>

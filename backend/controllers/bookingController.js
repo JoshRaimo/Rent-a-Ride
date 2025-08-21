@@ -175,11 +175,16 @@ const updateBookingStatus = async (req, res) => {
              return res.status(400).json({ message: 'Booking is already canceled.' });
         }
         
-        booking.status = status;
-        
-        await booking.save();
+        // Use findByIdAndUpdate to avoid triggering validation
+        const updatedBooking = await Booking.findByIdAndUpdate(
+            bookingId,
+            { status },
+            { new: true, runValidators: false }
+        ).populate('car');
 
-        const updatedBooking = await Booking.findById(booking._id).populate('car');
+        if (!updatedBooking) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
 
         res.status(200).json({ message: `Booking ${status} successfully`, booking: updatedBooking });
     } catch (error) {

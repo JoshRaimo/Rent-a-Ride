@@ -8,7 +8,11 @@ const bookingSchema = new mongoose.Schema({
         required: true,
         validate: {
             validator: function(value) {
-                return value > new Date();  // Ensure start date is in the future
+                // Only validate future dates for new bookings, not status updates
+                if (this.isNew) {
+                    return value > new Date();  // Ensure start date is in the future for new bookings
+                }
+                return true; // Allow past dates for existing bookings
             },
             message: 'Start date must be in the future'
         }
@@ -26,8 +30,8 @@ const bookingSchema = new mongoose.Schema({
     totalPrice: { type: Number, required: true, min: 0 },  // Ensuring price is non-negative
     status: { 
         type: String, 
-        enum: ['pending', 'confirmed', 'canceled', 'completed'], 
-        default: 'pending'
+        enum: ['confirmed', 'canceled', 'completed'], 
+        default: 'confirmed'
     },
 }, { timestamps: true });
 

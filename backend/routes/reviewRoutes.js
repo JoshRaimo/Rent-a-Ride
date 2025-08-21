@@ -6,7 +6,8 @@ const {
     getUserReviews,
     canReviewBooking,
     getAllReviews,
-    deleteReview
+    deleteReview,
+    getReviewsByBooking
 } = require('../controllers/reviewController');
 const { authenticate, authorizeAdmin } = require('../middleware/authMiddleware');
 
@@ -21,5 +22,8 @@ router.get('/car/:carId', getCarReviews);
 // Admin routes (require admin privileges)
 router.get('/admin/all', authenticate, authorizeAdmin, getAllReviews);
 router.delete('/admin/:reviewId', authenticate, authorizeAdmin, deleteReview);
+
+// Get reviews by booking ID (admin only)
+router.get('/booking/:bookingId', authenticate, authorizeAdmin, getReviewsByBooking);
 
 module.exports = router;

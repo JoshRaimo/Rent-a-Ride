@@ -302,6 +302,25 @@ const getAllReviews = async (req, res) => {
     }
 };
 
+// Get reviews by booking ID
+const getReviewsByBooking = async (req, res) => {
+    try {
+        const { bookingId } = req.params;
+
+        const reviews = await Review.find({ booking: bookingId })
+            .populate('user', 'username email')
+            .populate('car', 'make model year')
+            .sort({ createdAt: -1 })
+            .lean();
+
+        res.json({ reviews });
+
+    } catch (error) {
+        console.error('Error fetching reviews by booking:', error);
+        res.status(500).json({ message: 'Failed to fetch reviews', error: error.message });
+    }
+};
+
 // Admin: Delete a review
 const deleteReview = async (req, res) => {
     try {
@@ -335,5 +354,6 @@ module.exports = {
     canReviewBooking,
     getAllReviews,
     deleteReview,
-    updateCarRating
+    updateCarRating,
+    getReviewsByBooking
 };
