@@ -9,40 +9,36 @@ const performanceMonitor = (req, res, next) => {
   const originalJson = res.json;
   const originalEnd = res.end;
   
-  // Override send methods to add timing header before sending
-  res.send = function(data) {
+  // Helper function to safely set header and log
+  const setTimingHeader = () => {
     const duration = Date.now() - start;
-    res.setHeader('X-Response-Time', `${duration}ms`);
+    
+    // Only set header if it hasn't been sent yet
+    if (!res.headersSent) {
+      res.setHeader('X-Response-Time', `${duration}ms`);
+    }
     
     // Only log slow requests (over 1 second)
     if (duration > 1000) {
       console.warn(`🐌 Slow request: ${req.method} ${req.originalUrl} took ${duration}ms`);
     }
     
+    return duration;
+  };
+  
+  // Override send methods to add timing header before sending
+  res.send = function(data) {
+    setTimingHeader();
     return originalSend.call(this, data);
   };
   
   res.json = function(data) {
-    const duration = Date.now() - start;
-    res.setHeader('X-Response-Time', `${duration}ms`);
-    
-    // Only log slow requests (over 1 second)
-    if (duration > 1000) {
-      console.warn(`🐌 Slow request: ${req.method} ${req.originalUrl} took ${duration}ms`);
-    }
-    
+    setTimingHeader();
     return originalJson.call(this, data);
   };
   
   res.end = function(data) {
-    const duration = Date.now() - start;
-    res.setHeader('X-Response-Time', `${duration}ms`);
-    
-    // Only log slow requests (over 1 second)
-    if (duration > 1000) {
-      console.warn(`🐌 Slow request: ${req.method} ${req.originalUrl} took ${duration}ms`);
-    }
-    
+    setTimingHeader();
     return originalEnd.call(this, data);
   };
   
