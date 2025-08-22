@@ -245,7 +245,8 @@ const AvailableCars = ({ isAuthenticated }) => {
     // Fetch models based on make from actual car data
     useEffect(() => {
         const fetchModels = async () => {
-            if (!filters.make) {
+            // Only fetch models if we have a make selected and the component is mounted
+            if (!filters.make || !hasInitialized) {
                 setModels([]);
                 return;
             }
@@ -275,7 +276,7 @@ const AvailableCars = ({ isAuthenticated }) => {
             }
         };
         fetchModels();
-    }, [filters.make, filters.startDate, filters.endDate, filters.startTime, filters.endTime, todayFormatted, today, EST_TIMEZONE]);
+    }, [filters.make, filters.startDate, filters.endDate, filters.startTime, filters.endTime, todayFormatted, today, EST_TIMEZONE, hasInitialized]);
 
     // Handle date adjustment for late night times
     useEffect(() => {
@@ -468,17 +469,9 @@ const AvailableCars = ({ isAuthenticated }) => {
                 const currentEndTime = location.state?.endTime || 'Midnight';
 
                 // Fetch all initial data in parallel
-                const [yearRangeResponse, priceRangeResponse, makesResponse, initialCarsResponse] = await Promise.all([
+                const [yearRangeResponse, priceRangeResponse, initialCarsResponse] = await Promise.all([
                     axios.get(`${process.env.REACT_APP_API_URL}/cars/year-range`),
                     axios.get(`${process.env.REACT_APP_API_URL}/cars/price-range`),
-                    axios.get(`${process.env.REACT_APP_API_URL}/cars/available`, {
-                        params: {
-                            startDate: currentStartDate,
-                            endDate: currentEndDate,
-                            startTime: currentStartTime,
-                            endTime: currentEndTime
-                        }
-                    }),
                     axios.get(`${process.env.REACT_APP_API_URL}/cars/available`, {
                         params: {
                             startDate: currentStartDate,
@@ -508,7 +501,7 @@ const AvailableCars = ({ isAuthenticated }) => {
                 };
                 
                 // Process makes data
-                const availableCars = makesResponse.data;
+                const availableCars = initialCarsResponse.data;
                 const uniqueMakes = [...new Set(availableCars.map(car => car.make))].sort();
                 
                 // Batch all state updates to prevent flickering
@@ -626,7 +619,8 @@ const AvailableCars = ({ isAuthenticated }) => {
     // Handle window focus
     useEffect(() => {
         const handleFocus = () => {
-            if (hasInitialized && filters.startDate && filters.endDate) {
+            // Only refresh if we're on the Available Cars page
+            if (hasInitialized && filters.startDate && filters.endDate && window.location.pathname === '/available-cars') {
                 fetchAvailableCars();
             }
             
@@ -673,7 +667,8 @@ const AvailableCars = ({ isAuthenticated }) => {
     // Additional check for booking status changes when page becomes visible
     useEffect(() => {
         const handleVisibilityChange = () => {
-            if (!document.hidden && hasInitialized && filters.startDate && filters.endDate) {
+            // Only refresh if we're on the Available Cars page and have proper initialization
+            if (!document.hidden && hasInitialized && filters.startDate && filters.endDate && window.location.pathname === '/available-cars') {
                 // When page becomes visible, refresh to ensure we have the latest data
                 refreshForBookingStatusChange();
             }
@@ -684,7 +679,7 @@ const AvailableCars = ({ isAuthenticated }) => {
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
-    }, [hasInitialized, filters.startDate, filters.endDate]);
+    }, [hasInitialized, filters.startDate, filters.endDate, refreshForBookingStatusChange]);
 
     const handleBookNow = useCallback((car) => {
         navigate('/book-car', { 

@@ -31,19 +31,17 @@ const CarManagement = () => {
     const modelOptions = models.map(model => ({ value: model, label: model }));
     const yearOptions = years.map(year => ({ value: year, label: year }));
 
-    // Fetch car makes from carapi (server injects auth)
-    useEffect(() => {
-        const fetchMakes = async () => {
-            try {
-                const response = await axios.get(`${process.env.REACT_APP_API_URL}/carapi/makes`);
-                setMakes(response.data.data.map((make) => ({ value: make.name, label: make.name })));
-            } catch (error) {
-                console.error('Error fetching makes:', error.message);
-                setMakes([]);
-            }
-        };
-        fetchMakes();
-    }, []);
+    // Fetch car makes from carapi (server injects auth) - only when needed
+    const fetchMakes = async () => {
+        if (makes.length > 0) return; // Already loaded
+        try {
+            const response = await axios.get(`${process.env.REACT_APP_API_URL}/carapi/makes`);
+            setMakes(response.data.data.map((make) => ({ value: make.name, label: make.name })));
+        } catch (error) {
+            console.error('Error fetching makes:', error.message);
+            setMakes([]);
+        }
+    };
 
     // Define availability options
     const availabilityOptions = [
@@ -326,6 +324,7 @@ const CarManagement = () => {
                                 setSelectedYear('');
                                 setYears([]);
                             }}
+                            onMenuOpen={fetchMakes}
                             isClearable
                             placeholder="Select or type make"
                         />
