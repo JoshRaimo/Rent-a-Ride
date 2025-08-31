@@ -36,6 +36,10 @@ const imageRoutes = require('./routes/imageRoutes');
 const profileImageRoutes = require('./routes/profileImageRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const statsRoutes = require('./routes/statsRoutes');
+const chatRoutes = require('./routes/chatRoutes');
+
+// Chat controller for WebSocket integration
+const { setSocketServer } = require('./controllers/chatController');
 
 const app = express();
 
@@ -92,6 +96,10 @@ app.use('/api/images', imageRoutes);
 app.use('/api/profile-images', profileImageRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/stats', cacheStats, statsRoutes); // Cache stats for 1 hour
+app.use('/api/chat', chatRoutes);
+
+// WebSocket integration function (will be called from server.js)
+app.setSocketServer = setSocketServer;
 
 // Cache management routes
 const cacheRouter = express.Router();

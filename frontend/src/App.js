@@ -30,13 +30,17 @@ import LoginModal from './components/LoginModal';
 import RegisterModal from './components/RegisterModal';
 import { AuthModalProvider, useAuthModal } from './contexts/AuthModalContext';
 import { NotificationProvider, useNotification } from './contexts/NotificationContext';
+import { ChatProvider } from './contexts/ChatContext';
+import Chat from './components/Chat';
 
 const App = () => {
     return (
         <Router>
             <NotificationProvider position="top-right">
                 <AuthModalProvider>
-                    <MainApp />
+                    <ChatProvider>
+                        <MainApp />
+                    </ChatProvider>
                 </AuthModalProvider>
             </NotificationProvider>
         </Router>
@@ -300,17 +304,20 @@ const MainApp = () => {
             </main>
 
             {/* Auth Modals */}
-                         <LoginModal 
-                 isOpen={showLoginModal}
-                 onClose={closeLoginModal}
-                 onLoginSuccess={handleLoginSuccess}
-                 onShowRegister={openRegisterModal}
-             />
-             <RegisterModal 
-                 isOpen={showRegisterModal}
-                 onClose={closeRegisterModal}
-                 onShowLogin={openLoginModal}
-             />
+            <LoginModal 
+                isOpen={showLoginModal}
+                onClose={closeLoginModal}
+                onLoginSuccess={handleLoginSuccess}
+                onShowRegister={openRegisterModal}
+            />
+            <RegisterModal 
+                isOpen={showRegisterModal}
+                onClose={closeRegisterModal}
+                onShowLogin={openLoginModal}
+            />
+
+            {/* Chat Component - Only show when authenticated */}
+            {isAuthenticated && <Chat />}
         </div>
     );
 };

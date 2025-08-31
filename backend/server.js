@@ -2,20 +2,32 @@
 const mongoose = require('mongoose');
 const path = require('path');
 const express = require('express');
+const http = require('http');
 require('dotenv').config();
 
-// Import the express app
+// Import the express app and socket server
 const app = require('./app');
+const SocketServer = require('./socket/socketServer');
 const PORT = process.env.PORT || 5000;
 
 // Note: Routes and middleware are mounted in app.js
+
+// Create HTTP server
+const server = http.createServer(app);
+
+// Initialize WebSocket server
+const socketServer = new SocketServer(server);
+
+// Connect WebSocket server to chat controller
+app.setSocketServer(socketServer);
 
 // Connect to MongoDB
 mongoose
     .connect(process.env.MONGO_URI)
     .then(() => {
         console.log('MongoDB connected successfully');
-        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+        server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+        console.log('WebSocket server initialized');
     })
     .catch((err) => {
         console.error('MongoDB connection error:', err.message);

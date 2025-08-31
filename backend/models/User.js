@@ -14,7 +14,19 @@ const userSchema = new mongoose.Schema({
     profilePicture: { 
         type: String, 
         default: '' // S3 URL for the profile picture
-    }
+    },
+    // Chat-related fields
+    isOnline: { type: Boolean, default: false },
+    lastSeen: { type: Date, default: Date.now }
 });
+
+// Virtual field to map profilePicture to profileImage for chat compatibility
+userSchema.virtual('profileImage').get(function() {
+    return this.profilePicture;
+});
+
+// Ensure virtual fields are serialized
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
 
 module.exports = mongoose.model('User', userSchema);
